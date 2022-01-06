@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"tanght/grpchello"
+	"tanght/pbhello"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -17,13 +16,19 @@ func main() {
 		return
 	}
 	s := grpc.NewServer()
-	grpchello.RegisterGreeterServer(s, &server{})
-	reflection.Register(s)
-	err = s.Serve(lis)
+	pbhello.RegisterHelloWorldServer(s, helloWorldServer{})
+	s.Serve(lis)
 }
 
-type server struct{}
+type helloWorldServer struct {
+	pbhello.UnimplementedHelloWorldServer
+}
 
-func (s *server) SayHello(ctx context.Context, in *grpchello.ReqHello) (*grpchello.RepHello, error) {
-	return &grpchello.RepHello{Msg: "ni hao a " + in.Name}, nil
+func (helloWorldServer) Hello(ctx context.Context, req *pbhello.HelloReq) (*pbhello.HelloRes, error) {
+	fmt.Println("in Hello")
+	return &pbhello.HelloRes{Msg: fmt.Sprint("Hello ", req.Name)}, nil
+}
+func (helloWorldServer) Hi(ctx context.Context, req *pbhello.HiReq) (*pbhello.HiRes, error) {
+	fmt.Println("in Hi")
+	return &pbhello.HiRes{Msg: fmt.Sprint("Hi ", req.Name, " your age is ", req.Age)}, nil
 }

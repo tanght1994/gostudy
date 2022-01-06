@@ -3,25 +3,24 @@ package main
 import (
 	"context"
 	"fmt"
-	"tanght/grpchello"
+	"log"
+	"tanght/pbhello"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
-	conn, err := grpc.Dial(":8000", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:8000", grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		fmt.Printf("连接服务端失败: %s", err)
-		return
+		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-
-	c := grpchello.NewGreeterClient(conn)
-
-	r, err := c.SayHello(context.Background(), &grpchello.ReqHello{Name: "horika"})
+	clie := pbhello.NewHelloWorldClient(conn)
+	ctx := context.Background()
+	req := &pbhello.HelloReq{Name: "tanght"}
+	res, err := clie.Hello(ctx, req)
 	if err != nil {
-		fmt.Printf("调用服务端代码失败: %s", err)
-		return
+		log.Fatalf("clie.Hello error: %v", err)
 	}
-	fmt.Printf("调用成功: %s", r.Msg)
+	fmt.Println(res.Msg)
 }
