@@ -1,0 +1,8 @@
+<seelog type="asynctimer" asyncinterval="5000000" minlevel="error" maxlevel="error">
+    <outputs formatid="default">
+        <console/>
+    </outputs>
+    <formats>
+        <format id="default" format="%Date %Time [%LEV] %Msg%n"/>
+    </formats>
+</seelog>
