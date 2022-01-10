@@ -1,6 +1,8 @@
-<seelog type="asynctimer" asyncinterval="5000000" minlevel="error" maxlevel="error">
+<seelog type="asynctimer" asyncinterval="5000000" minlevel="trace">
     <outputs formatid="default">
         <console/>
+        <file path="log.log"/>
+        <rollingfile type="size" filename="roll.log" maxsize="10485760" maxrolls="3"/>
     </outputs>
     <formats>
         <format id="default" format="%Date %Time [%LEV] %Msg%n"/>
