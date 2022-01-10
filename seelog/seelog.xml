@@ -1,4 +1,4 @@
-<seelog type="asynctimer" asyncinterval="5000000" minlevel="trace">
+<seelog type="asynctimer" asyncinterval="4000000000" minlevel="trace">
     <outputs formatid="default">
         <console/>
         <file path="log.log"/>

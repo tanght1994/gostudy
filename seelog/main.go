@@ -14,7 +14,7 @@ func main() {
 		log.Fatal("init log error, ", err.Error())
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 3; i++ {
 		go work()
 	}
 
@@ -31,7 +31,6 @@ func work() {
 		seelog.Warn("Warn")
 		seelog.Error("Error")
 		seelog.Critical("-------------------")
-		seelog.Flush()
-		time.Sleep(1 * 100 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 	}
 }

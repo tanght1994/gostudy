@@ -55,11 +55,12 @@ func monitorLoggerConfig(path string, interval time.Duration, lastmd5 string) {
 				} else {
 					seelog.Critical("logger update successful")
 				}
+				seelog.Flush()
 			}
 		} else {
 			seelog.Criticalf("logger config md5 error, %s", err.Error())
+			seelog.Flush()
 		}
-		seelog.Flush()
 		time.Sleep(interval)
 	}
 }
