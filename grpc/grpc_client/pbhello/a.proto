@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = ".;pbhello";
+
+service HelloWorld {
+    rpc Hello(HelloReq) returns (HelloRes) {}
+    rpc Hi(HiReq) returns (HiRes) {}
+}
+
+message HelloReq {
+    string name = 1;
+}
+  
+message HelloRes {
+    string msg = 1;
+}
+
+message HiReq {
+    string name = 1;
+    int32 age = 2;
+}
+  
+message HiRes {
+    string msg = 1;
+}
