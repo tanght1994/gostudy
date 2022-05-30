@@ -1,36 +1,26 @@
 package main
 
 import (
-	"log"
+	"tanght/hblog"
 	"time"
-
-	"github.com/cihub/seelog"
 )
 
-const G_LogConfigPath = "seelog.xml"
-
 func main() {
-	if err := initLoggerFromFile(G_LogConfigPath); err != nil {
-		log.Fatal("init log error, ", err.Error())
-	}
-
-	for i := 0; i < 3; i++ {
-		go work()
-	}
-
+	work()
 	for {
 		time.Sleep(1 * time.Second)
 	}
 }
 
 func work() {
-	for {
-		seelog.Trace("Trace")
-		seelog.Debug("Debug")
-		seelog.Info("Info")
-		seelog.Warn("Warn")
-		seelog.Error("Error")
-		seelog.Critical("-------------------")
+	for i := 0; i < 100; i++ {
+		hblog.Trace("Trace")
+		hblog.Debug("Debug")
+		hblog.Info("Info")
+		hblog.Warn("Warn")
+		hblog.Error("Error")
+		hblog.Critical("-------------------")
 		time.Sleep(1 * time.Second)
 	}
+	hblog.Flush()
 }

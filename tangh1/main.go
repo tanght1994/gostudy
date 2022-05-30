@@ -1,26 +1,66 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"reflect"
+	"math/rand"
+	"runtime"
+	"strconv"
+	"sync"
+	"time"
 )
 
-func reflectSetValue1(x interface{}) {
-	v := reflect.ValueOf(x)
-	if v.Kind() == reflect.Int64 {
-		v.SetInt(200) //修改的是副本，reflect包会引发panic
-	}
-}
-func reflectSetValue2(x interface{}) {
-	v := reflect.ValueOf(x)
-	// 反射中使用 Elem()方法获取指针对应的值
-	if v.Elem().Kind() == reflect.Int64 {
-		v.Elem().SetInt(200)
-	}
-}
+var g_foods int
+var g_cond sync.Cond
+
 func main() {
-	var a int64 = 100
-	// reflectSetValue1(a) //panic: reflect: reflect.Value.SetInt using unaddressable value
-	reflectSetValue2(&a)
-	fmt.Println(a)
+	g_cond = *sync.NewCond(new(sync.Mutex))
+	for i := 0; i < 3; i++ {
+		go eatten()
+	}
+	go makefooduntilendtheworld()
+	time.Sleep(time.Hour)
+}
+
+func eatone(id uint64) {
+	g_cond.L.Lock()
+	defer g_cond.L.Unlock()
+	for g_foods == 0 {
+		fmt.Println(id, " wait food")
+		g_cond.Wait()
+	}
+	g_foods = g_foods - 1
+	fmt.Println(id, " eat one")
+}
+
+func eatten() {
+	for i := 0; i < 10; i++ {
+		id := GetGoroutineID()
+		eatone(id)
+	}
+}
+
+func makefood() {
+	g_cond.L.Lock()
+	defer g_cond.L.Unlock()
+	add := (rand.Int() % 10) + 1
+	g_foods = g_foods + add
+	fmt.Println("make ", add, " food")
+	g_cond.Signal()
+}
+
+func makefooduntilendtheworld() {
+	for {
+		makefood()
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func GetGoroutineID() uint64 {
+	b := make([]byte, 64)
+	runtime.Stack(b, false)
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
 }
