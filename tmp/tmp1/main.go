@@ -1,13 +1,16 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
+type T struct {
+	n int
+}
 
+type X struct{}
+
+func (x X) test() {
+	println(x)
+}
 func main() {
-	time.AfterFunc(5*time.Second, func() {
-		fmt.Println("1")
-	})
-	time.Sleep(time.Minute)
+	var a *X
+	a.test()
+	X{}.test()
 }
