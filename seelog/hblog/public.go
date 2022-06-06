@@ -1,12 +1,5 @@
 package hblog
 
-import "time"
-
-const (
-	g_logConfigPath      = "seelog.xml"    // 配置文件路径
-	g_logMonitorInterval = 1 * time.Second // 监控配置文件变换的时间间隔
-)
-
 func Tracef(format string, params ...interface{}) {
 	g_logMutex.Lock()
 	defer g_logMutex.Unlock()
@@ -25,23 +18,22 @@ func Infof(format string, params ...interface{}) {
 	g_myLogger.Infof(format, params...)
 }
 
-func Warnf(format string, params ...interface{}) {
+func Warnf(format string, params ...interface{}) error {
 	g_logMutex.Lock()
 	defer g_logMutex.Unlock()
-	g_myLogger.Warnf(format, params...)
+	return g_myLogger.Warnf(format, params...)
 }
 
-func Errorf(format string, params ...interface{}) {
+func Errorf(format string, params ...interface{}) error {
 	g_logMutex.Lock()
 	defer g_logMutex.Unlock()
-	g_myLogger.Errorf(format, params...)
+	return g_myLogger.Errorf(format, params...)
 }
 
-func Criticalf(format string, params ...interface{}) {
+func Criticalf(format string, params ...interface{}) error {
 	g_logMutex.Lock()
 	defer g_logMutex.Unlock()
-	g_myLogger.Criticalf(format, params...)
-	g_myLogger.Flush()
+	return g_myLogger.Criticalf(format, params...)
 }
 
 func Trace(v ...interface{}) {
@@ -62,23 +54,22 @@ func Info(v ...interface{}) {
 	g_myLogger.Info(v...)
 }
 
-func Warn(v ...interface{}) {
+func Warn(v ...interface{}) error {
 	g_logMutex.Lock()
 	defer g_logMutex.Unlock()
-	g_myLogger.Warn(v...)
+	return g_myLogger.Warn(v...)
 }
 
-func Error(v ...interface{}) {
+func Error(v ...interface{}) error {
 	g_logMutex.Lock()
 	defer g_logMutex.Unlock()
-	g_myLogger.Error(v...)
+	return g_myLogger.Error(v...)
 }
 
-func Critical(v ...interface{}) {
+func Critical(v ...interface{}) error {
 	g_logMutex.Lock()
 	defer g_logMutex.Unlock()
-	g_myLogger.Critical(v...)
-	g_myLogger.Flush()
+	return g_myLogger.Critical(v...)
 }
 
 func Flush() {

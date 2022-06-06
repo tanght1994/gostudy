@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+// go_package = "{path};{package_name}"
+option go_package = "./fuckproto/;fuckproto";
+
+// The greeting service definition.
+service Greeter {
+    // Sends a greeting
+    rpc SayHello (HelloRequest) returns (HelloReply) {}
+    // Sends another greeting
+    rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
+    
+    rpc SayHello1 (stream HelloRequest) returns (HelloReply) {}
+    rpc SayHello2 (HelloRequest) returns (stream HelloReply) {}
+    rpc SayHello3 (stream HelloRequest) returns (stream HelloReply) {}
+}
+  
+// The request message containing the user's name.
+message HelloRequest {
+    string name = 1;
+}
+
+// The response message containing the greetings
+message HelloReply {
+    string message = 1;
+}

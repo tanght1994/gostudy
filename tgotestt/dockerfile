@@ -1,0 +1,7 @@
+FROM alpine:latest
+WORKDIR /apps
+VOLUME ["/apps/conf"]
+ADD . ./
+EXPOSE 5902
+EXPOSE 9602
+ENTRYPOINT  ["./dianbiao_docker"]
