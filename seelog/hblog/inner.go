@@ -13,30 +13,37 @@ import (
 	"github.com/cihub/seelog"
 )
 
-var g_myLogger seelog.LoggerInterface // hblog的全局logger，非并发安全，必须加普通锁，不能是读写锁
+var g_myLogger seelog.LoggerInterface // 全局logger，非并发安全，必须加普通锁，不能是读写锁
 var g_logMutex *sync.Mutex            // 操作(读和写两种操作)g_myLogger的时候，必须持有这个锁
+// var g_onceinit sync.Once              // InitLog只能调用一次，放弃Once，由用户负责只调用一次
 
 func init() {
-	// 对seelog做一些自定义
 	customizeSeelog()
 	g_logMutex = new(sync.Mutex)
 	g_myLogger = seelog.Disabled
-	// 从配置文件创建logger，并赋值给g_myLogger
-	replaceLoggerFromFile(g_logConfigPath)
-	// 这里计算md5仅仅是为了给monitorConfig传递参数，避免monitorConfig的首次更新
-	md5, err := filemd5(g_logConfigPath)
-	if err != nil {
-		md5 = ""
+}
+
+func InitLog(config_path string, monitor_interval time.Duration) error {
+	if monitor_interval < time.Second {
+		monitor_interval = 1 * time.Second
 	}
-	// 开始监控配置文件变化
-	go monitorConfig(g_logConfigPath, g_logMonitorInterval, md5)
+	err := replaceLoggerFromFile(config_path)
+	if err != nil {
+		return err
+	}
+	md5, err := filemd5(config_path)
+	if err != nil {
+		return err
+	}
+	go monitorConfig(config_path, monitor_interval, md5)
+	return nil
 }
 
 func replaceLoggerFromFile(path string) error {
 	errmsg := ""
 	logger, err := seelog.LoggerFromConfigAsFile(path)
 	if err != nil {
-		errmsg = fmt.Sprintf("create logger from config file failed, %s\n", err.Error())
+		errmsg = fmt.Sprintf("create logger from config file failed, %s", err.Error())
 		g_myLogger.Critical(errmsg)
 		tostderr(errmsg)
 		return err
@@ -45,7 +52,7 @@ func replaceLoggerFromFile(path string) error {
 	logger.SetAdditionalStackDepth(1)
 	err = replaceLogger(logger)
 	if err != nil {
-		errmsg = fmt.Sprintf("replace hblog default logger failed, %s\n", err.Error())
+		errmsg = fmt.Sprintf("replace hblog default logger failed, %s", err.Error())
 		g_myLogger.Critical(errmsg)
 		tostderr(errmsg)
 	} else {
@@ -112,5 +119,5 @@ func customizeSeelog() {
 }
 
 func tostderr(msg string) {
-	fmt.Fprint(os.Stderr, msg)
+	fmt.Fprint(os.Stderr, msg+"\n")
 }

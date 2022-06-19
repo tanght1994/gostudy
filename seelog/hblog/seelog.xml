@@ -1,0 +1,26 @@
+<!-- type：sync asyncloop asynctimer adaptive -->
+<!-- minlevel： trace debug info warn error critical off-->
+<seelog type="asyncloop" minlevel="trace">
+
+    <!-- <exceptions>
+        <exception funcpattern="*main.test*Something*" minlevel="info"/>
+        <exception filepattern="*main.go" minlevel="error"/>
+    </exceptions> -->
+
+    <outputs formatid="default">
+        <rollingfile type="size" filename="all.log" maxsize="104857600" maxrolls="5"/>
+        <filter levels="warn">
+            <rollingfile type="size" filename="warn.log" maxsize="104857600" maxrolls="5"/>
+        </filter>
+        <filter levels="error">
+            <rollingfile type="size" filename="error.log" maxsize="104857600" maxrolls="5"/>
+        </filter>
+        <filter levels="critical">
+            <rollingfile type="size" filename="critical.log" maxsize="104857600" maxrolls="5"/>
+        </filter>
+    </outputs>
+
+    <formats>
+        <format id="default" format="%ThtDateTime [%LEV] %RelFile %Line %Msg%n"/>
+    </formats>
+</seelog>

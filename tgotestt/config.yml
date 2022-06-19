@@ -1,0 +1,11 @@
+name: tanght
+age: 180
+phone:
+    -
+      id: 1
+      name: iphone
+      proce: 100
+    -
+      id: 2
+      name: huawei
+      proce: 200
