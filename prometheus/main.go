@@ -20,10 +20,8 @@ func main() {
 	fieldKeys := []string{"fieldKeys1", "fieldKeys2"}
 
 	counter := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "tht_namespace",
-		Subsystem: "tht_subsystem",
-		Name:      "tht_counter_name",
-		Help:      "tht_help",
+		Name: "coin",
+		Help: "tht_help",
 	}, fieldKeys)
 	prometheus.MustRegister(counter)
 
