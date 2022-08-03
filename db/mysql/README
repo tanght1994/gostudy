@@ -54,8 +54,8 @@ func (rs *Rows) NextResultSet() bool // 用于当一次Query执行了多个SQL�
 func (rs *Rows) Err() error
 func (rs *Rows) Columns() ([]string, error) // 获取当前结果集的字段名, 使用NextResultSet切换到下一个结果集的时候, Columns可能就跟上一个结果集的Columns不一样了
 func (rs *Rows) ColumnTypes() ([]*ColumnType, error)
-func (rs *Rows) Scan(dest ...interface{}) error
-func (rs *Rows) Close() error
+func (rs *Rows) Scan(dest ...interface{}) error // 将Rows中的一行数据提取到dest中。SELECT了几列数据, Scan中的dest就要有几个, dest的类型必须与SELECT语句中的各字段类型按顺序对应
+func (rs *Rows) Close() error                   // 释放Rows占用的mysql连接, Next()函数返回false时, 自动Close()
 
 func (r *Row) Scan(dest ...interface{}) error // 此函数自动关闭 Row
 func (r *Row) Err() error

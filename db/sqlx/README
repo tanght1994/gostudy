@@ -5,8 +5,8 @@ func (db *DB) Unsafe() *DB
 func (db *DB) BindNamed(query string, arg interface{}) (string, []interface{}, error)
 func (db *DB) NamedQuery(query string, arg interface{}) (*Rows, error)
 func (db *DB) NamedExec(query string, arg interface{}) (sql.Result, error)
-func (db *DB) Select(dest interface{}, query string, args ...interface{}) error
-func (db *DB) Get(dest interface{}, query string, args ...interface{}) error
+func (db *DB) Select(dest interface{}, query string, args ...interface{}) error // 查询多条数据 直接将结果保存到dest中 省去Next + Scan的麻烦
+func (db *DB) Get(dest interface{}, query string, args ...interface{}) error    // 查询1条数据 直接将结果保存到dest中 省去Scan的麻烦
 func (db *DB) MustBegin() *Tx
 func (db *DB) Beginx() (*Tx, error)
 func (db *DB) Queryx(query string, args ...interface{}) (*Rows, error)
@@ -16,8 +16,8 @@ func (db *DB) Preparex(query string) (*Stmt, error)
 func (db *DB) PrepareNamed(query string) (*NamedStmt, error)
 
 // Rows 继承 sql.Rows 并且多了三个方法
-func (r *Rows) SliceScan() ([]interface{}, error)
-func (r *Rows) MapScan(dest map[string]interface{}) error
+func (r *Rows) SliceScan() ([]interface{}, error) // 将一行数据提取到[]interface{}中
+func (r *Rows) MapScan(dest map[string]interface{}) error // 将一行数据提取到map[string]interface{}中
 func (r *Rows) StructScan(dest interface{}) error
 
 // Row 没有继承 sql.Rows

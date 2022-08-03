@@ -15,9 +15,7 @@ func main() {
 	query(db)
 	query_with_many_statement(db)
 	queryrow(db)
-	aaaaa(db)
-	session1()
-	session2()
+	interpolate(db)
 }
 
 // func tanght1() {
@@ -260,18 +258,20 @@ func queryrow(db *sql.DB) {
 	fmt.Println(int1, str1, int2)
 }
 
-func aaaaa(db *sql.DB) {
-	fmt.Println("queryrow start")
-	defer fmt.Println("queryrow end")
+func interpolate(db *sql.DB) {
+	// 使用?进行参数占位(插值)
+	// sql驱动负责将?替换为真实的值, 然后生成真实的SQL语句发送给MySQL服务器
+	// sql驱动根据你传递的参数的类型来决定是否用单引号包裹你的参数
+	fmt.Println("interpolate start")
+	defer fmt.Println("interpolate end")
 	if db == nil {
 		db = create_db(1)
 	}
-	row := db.QueryRow("select connection_id()")
-	if row.Err() != nil {
-		fmt.Println(row.Err())
-		return
-	}
-	var a int
-	row.Scan(&a)
-	fmt.Println(a)
+	// 生成的SQL语句为 INSERT INTO t1 (a, b) VALUES ('tanght', 100)
+	_, err := db.Exec("INSERT INTO t1 (a, b) VALUES (?, ?)", "tanght", 100)
+	must(err)
+
+	// 生成的SQL语句为 INSERT INTO 't1' (a, b) VALUES ('wangqing', 500)
+	_, err = db.Exec("INSERT INTO ? (a, b) VALUES (?, ?)", "t1", "wangqing", 500)
+	fmt.Println(err)
 }
