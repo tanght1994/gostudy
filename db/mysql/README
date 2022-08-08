@@ -1,0 +1,84 @@
+func (db *DB) PingContext(ctx context.Context) error
+func (db *DB) Ping() error
+func (db *DB) Close() error
+func (db *DB) SetMaxIdleConns(n int)
+func (db *DB) SetMaxOpenConns(n int)
+func (db *DB) SetConnMaxLifetime(d time.Duration)
+func (db *DB) SetConnMaxIdleTime(d time.Duration)
+func (db *DB) Stats() DBStats
+func (db *DB) PrepareContext(ctx context.Context, query string) (*Stmt, error)
+func (db *DB) Prepare(query string) (*Stmt, error)
+func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (Result, error)
+func (db *DB) Exec(query string, args ...interface{}) (Result, error)
+func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*Rows, error)
+func (db *DB) Query(query string, args ...interface{}) (*Rows, error)
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *Row
+func (db *DB) QueryRow(query string, args ...interface{}) *Row
+func (db *DB) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error)
+func (db *DB) Begin() (*Tx, error)
+func (db *DB) Driver() driver.Driver
+func (db *DB) Conn(ctx context.Context) (*Conn, error)
+
+func (c *Conn) PingContext(ctx context.Context) error
+func (c *Conn) ExecContext(ctx context.Context, query string, args ...interface{}) (Result, error)
+func (c *Conn) QueryContext(ctx context.Context, query string, args ...interface{}) (*Rows, error)
+func (c *Conn) QueryRowContext(ctx context.Context, query string, args ...interface{}) *Row
+func (c *Conn) PrepareContext(ctx context.Context, query string) (*Stmt, error)
+func (c *Conn) Raw(f func(driverConn interface{}) error) (err error)
+func (c *Conn) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error)
+func (c *Conn) Close() error
+
+func (tx *Tx) Commit() error
+func (tx *Tx) Rollback() error
+func (tx *Tx) PrepareContext(ctx context.Context, query string) (*Stmt, error)
+func (tx *Tx) Prepare(query string) (*Stmt, error)
+func (tx *Tx) StmtContext(ctx context.Context, stmt *Stmt) *Stmt
+func (tx *Tx) Stmt(stmt *Stmt) *Stmt
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (Result, error)
+func (tx *Tx) Exec(query string, args ...interface{}) (Result, error)
+func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*Rows, error)
+func (tx *Tx) Query(query string, args ...interface{}) (*Rows, error)
+func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *Row
+func (tx *Tx) QueryRow(query string, args ...interface{}) *Row
+
+func (s *Stmt) ExecContext(ctx context.Context, args ...interface{}) (Result, error)
+func (s *Stmt) Exec(args ...interface{}) (Result, error)
+func (s *Stmt) QueryContext(ctx context.Context, args ...interface{}) (*Rows, error)
+func (s *Stmt) Query(args ...interface{}) (*Rows, error)
+func (s *Stmt) QueryRowContext(ctx context.Context, args ...interface{}) *Row
+func (s *Stmt) QueryRow(args ...interface{}) *Row
+func (s *Stmt) Close() error
+
+func (rs *Rows) Next() bool          // 遍历当前结果集, 进入当前结果集的下一条记录, Next返回false时, 自动关闭Rows. Next会触发mysql驱动从mysql服务读取数据.
+func (rs *Rows) NextResultSet() bool // 用于当一次Query执行了多个SQL语句的时候, 使用此函数来将Rows切换到下一个SQL语句的结果集
+func (rs *Rows) Err() error
+func (rs *Rows) Columns() ([]string, error) // 获取当前结果集的字段名, 使用NextResultSet切换到下一个结果集的时候, Columns可能就跟上一个结果集的Columns不一样了
+func (rs *Rows) ColumnTypes() ([]*ColumnType, error)
+func (rs *Rows) Scan(dest ...interface{}) error // 将Rows中的一行数据提取到dest中。SELECT了几列数据, Scan中的dest就要有几个, dest的类型必须与SELECT语句中的各字段类型按顺序对应
+func (rs *Rows) Close() error                   // 释放Rows占用的mysql连接, Next()函数返回false时, 自动Close()
+
+func (r *Row) Scan(dest ...interface{}) error // 此函数自动关闭 Row
+func (r *Row) Err() error
+
+func (ci *ColumnType) Name() string
+func (ci *ColumnType) Length() (length int64, ok bool)
+func (ci *ColumnType) DecimalSize() (precision, scale int64, ok bool)
+func (ci *ColumnType) ScanType() reflect.Type
+func (ci *ColumnType) Nullable() (nullable, ok bool)
+func (ci *ColumnType) DatabaseTypeName() string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
