@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha1"
 	"fmt"
+	"io"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -14,14 +15,11 @@ func must(err error) {
 }
 
 func main() {
+	s := "tanght niubi"
 	h := sha1.New()
-	h.Sum(nil)
-
-	res := fun1(nil)
-	fmt.Println(res)
-}
-
-func fun1(aaa []int) []int {
-	haha := append(aaa, 1, 2)
-	return haha
+	io.WriteString(h, s)
+	v1 := h.Sum(nil)
+	v2 := sha1.Sum([]byte(s))
+	fmt.Println(v1)
+	fmt.Println(v2)
 }

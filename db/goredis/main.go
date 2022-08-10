@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	luascript()
 	fun1()
 }
 
@@ -26,11 +27,18 @@ func createclient() *redis.Client {
 	// 自带连接池
 	opt := &redis.Options{}
 	opt.Addr = "localhost:6379"
-	opt.Password = "123456"
+	// opt.Password = "123456"
 	opt.PoolSize = 10
 	client := redis.NewClient(opt)
 	_, err := client.Ping(context.TODO()).Result()
 	must(err)
+	return client
+}
+
+func clusterclient() *redis.ClusterClient {
+	opt := &redis.ClusterOptions{}
+	opt.Addrs = []string{}
+	client := redis.NewClusterClient(opt)
 	return client
 }
 
@@ -139,33 +147,59 @@ func fun1() {
 	fmt.Println(val)
 }
 
+// lua脚本
 func luascript() {
 	ctx := context.TODO()
 	client := createclient()
 	keys := []string{"k1", "k2"}
 	args := []string{"a1", "a2"}
 	luas := `return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}`
-	hash := sha1.New()
-	hash.Sum()
-	hex.EncodeToString(sha1.Sum([]byte(luas)))
-	val, err := client.Eval(ctx, luas, keys, args).Result() // 执行Lua脚本
+	hash := sha1.Sum([]byte(luas))
+	luashash := hex.EncodeToString(hash[:])
+
+	// 删除redis服务器缓存的所有Lua脚本
+	tmp1, err := client.ScriptFlush(ctx).Result()
 	must(err)
-	fmt.Println(val)
-	client.ScriptLoad()   // 将Lua脚本缓存到redis服务器
-	client.EvalSha()      // 通过脚本的sha来执行redis服务器中的Lua脚本
-	client.ScriptKill()   // 杀死当前正在执行的Lua脚本
-	client.ScriptFlush()  // 删除redis服务器缓存的所有Lua脚本
-	client.ScriptExists() // 判断redis服务器是否存在此Lua脚本
+	fmt.Println(tmp1)
 
-	script := redis.NewScript("")
-	// 将脚本缓存到redis服务器
-	script.Load()
-	// 执行redis服务器中缓存的脚本
-	// Load的时候已经将脚本缓存到redis服务器了
-	// EvalSha只需将脚本的sha和参数发送给redis就行了
-	script.EvalSha()
+	// 判断redis服务器是否存在此Lua脚本
+	tmp5, err := client.ScriptExists(ctx, luashash).Result()
+	must(err)
+	fmt.Println(tmp5)
 
-	// 将整个脚本发送发给redis服务器并执行
-	script.Eval()
-	script.Hash()
+	// 执行Lua脚本
+	// 将整个lua脚本发送给redis服务器并执行
+	tmp2, err := client.Eval(ctx, luas, keys, args).Result()
+	must(err)
+	fmt.Println(tmp2)
+
+	// 判断redis服务器是否存在此Lua脚本
+	tmp6, err := client.ScriptExists(ctx, luashash).Result()
+	must(err)
+	fmt.Println(tmp6)
+
+	// 将Lua脚本缓存到redis服务器
+	// 其实上一步Eval的时候, 脚本已经被redis服务器缓存了
+	// tmp3是此脚本的hash
+	tmp3, err := client.ScriptLoad(ctx, luas).Result()
+	must(err)
+	fmt.Println(tmp3)
+
+	// 判断redis服务器是否存在此Lua脚本
+	tmp7, err := client.ScriptExists(ctx, luashash).Result()
+	must(err)
+	fmt.Println(tmp7)
+
+	// 通过脚本的sha来执行redis服务器中的Lua脚本
+	tmp4, err := client.EvalSha(ctx, luashash, keys, args).Result()
+	must(err)
+	fmt.Println(tmp4)
+}
+
+// 使用集群
+func cluster() {
+	client := clusterclient()
+	// ClusterClient会自动根据key来选择合适的redis节点
+	// 省去了redis服务帮我们重定向的操作, 提高了操作效率
+	client.Get(context.TODO(), "tanght").Result()
 }
