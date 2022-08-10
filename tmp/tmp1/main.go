@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -15,11 +17,6 @@ func must(err error) {
 }
 
 func main() {
-	s := "tanght niubi"
-	h := sha1.New()
-	io.WriteString(h, s)
-	v1 := h.Sum(nil)
-	v2 := sha1.Sum([]byte(s))
-	fmt.Println(v1)
-	fmt.Println(v2)
+	bufio.NewReader()
+	bytes.NewReader()
 }
