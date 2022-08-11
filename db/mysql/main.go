@@ -165,6 +165,7 @@ func insert(db *sql.DB) {
 	INSERT INTO t2 (c, d, e) VALUES ('s3', 40, 100);
 	INSERT INTO t2 (c, d, e) VALUES ('s4', 50, 200);
 	INSERT INTO t2 (c, d, e) VALUES ('s5', 60, 300);
+	INSERT INTO t2 (c, d, e) VALUES ('中国', 1111, 2222);
 	`
 	_, err = db.Exec(sql)
 	must(err)

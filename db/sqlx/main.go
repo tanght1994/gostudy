@@ -22,6 +22,8 @@ func main() {
 	Select(db)
 	Get(db)
 	Named(db)
+	SliceScan(db)
+	MapScan(db)
 }
 
 func create_db(size int) *sqlx.DB {
@@ -144,6 +146,7 @@ func Named(db *sqlx.DB) {
 		{"a": "C++", "b": 4},
 		{"a": "JAVA", "b": 2},
 		{"a": "Python", "b": 1},
+		{"a": "中国", "b": 1},
 	}
 	res, err = db.NamedExec("INSERT INTO t1 (a, b) VALUES (:a, :b)", data2)
 	must(err)
@@ -167,7 +170,21 @@ func Named(db *sqlx.DB) {
 func IN(db *sqlx.DB) {}
 
 func SliceScan(db *sqlx.DB) {
-	a, err := db.Queryx("")
+	a, err := db.Queryx("SELECT * FROM t1")
 	must(err)
-	a.SliceScan()
+	for a.Next() {
+		data, err := a.SliceScan()
+		must(err)
+		fmt.Println(data)
+	}
+}
+
+func MapScan(db *sqlx.DB) {
+	a, err := db.Queryx("SELECT * FROM t1")
+	must(err)
+	data := map[string]interface{}{}
+	for a.Next() {
+		a.MapScan(data)
+		fmt.Println(string(data["a"].([]uint8)), string(data["b"].([]uint8)), string(data["id"].([]uint8)))
+	}
 }
