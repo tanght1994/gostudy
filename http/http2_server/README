@@ -1,0 +1,125 @@
+
+func (s *http2Server) initialConnRecvWindowSize() int32
+func (s *http2Server) initialStreamRecvWindowSize() int32
+func (s *http2Server) maxReadFrameSize() uint32
+func (s *http2Server) maxConcurrentStreams() uint32
+func (s *http2Server) maxQueuedControlFrames() int
+// 当accept到一个新的连接的时候, 交给这个函数来处理, 函数中使用http2serverConn这个零件来进一步处理新的连接
+func (s *http2Server) ServeConn(c net.Conn, opts *http2ServeConnOpts)
+
+
+// 负责处理一个TCP连接，涉及到流的维护, 帧的读取写入, 不同格式帧的处理等
+func (sc *http2serverConn) rejectConn(err http2ErrCode, debug string)
+func (sc *http2serverConn) maxHeaderListSize() uint32
+func (sc *http2serverConn) curOpenStreams() uint32
+func (sc *http2serverConn) Framer() *http2Framer { return sc.framer }
+func (sc *http2serverConn) CloseConn() error { return sc.conn.Close() }
+func (sc *http2serverConn) Flush() error { return sc.bw.Flush() }
+func (sc *http2serverConn) HeaderEncoder() (*hpack.Encoder, *bytes.Buffer)
+func (sc *http2serverConn) state(streamID uint32) (http2streamState, *http2stream)
+func (sc *http2serverConn) setConnState(state ConnState)
+func (sc *http2serverConn) vlogf(format string, args ...interface{})
+func (sc *http2serverConn) logf(format string, args ...interface{})
+func (sc *http2serverConn) condlogf(err error, format string, args ...interface{})
+func (sc *http2serverConn) canonicalHeader(v string) string
+func (sc *http2serverConn) readFrames()  // 循环读取帧, 并将读到的帧塞到readFrameCh中。读取帧的时候是利用http2Framer这个零件来读取
+func (sc *http2serverConn) writeFrameAsync(wr http2FrameWriteRequest)
+func (sc *http2serverConn) closeAllStreamsOnConnClose()
+func (sc *http2serverConn) stopShutdownTimer()
+func (sc *http2serverConn) notePanic()
+func (sc *http2serverConn) serve()  // 循环从readFrameCh中读取帧, 将帧交给processFrameFromReader函数来处理
+func (sc *http2serverConn) awaitGracefulShutdown(sharedCh <-chan struct{}, privateCh chan struct{})
+func (sc *http2serverConn) onSettingsTimer() { sc.sendServeMsg(http2settingsTimerMsg) }
+func (sc *http2serverConn) onIdleTimer() { sc.sendServeMsg(http2idleTimerMsg) }
+func (sc *http2serverConn) onShutdownTimer() { sc.sendServeMsg(http2shutdownTimerMsg) }
+func (sc *http2serverConn) sendServeMsg(msg interface{})
+func (sc *http2serverConn) readPreface() error
+func (sc *http2serverConn) writeDataFromHandler(stream *http2stream, data []byte, endStream bool) error
+func (sc *http2serverConn) writeFrameFromHandler(wr http2FrameWriteRequest) error
+func (sc *http2serverConn) writeFrame(wr http2FrameWriteRequest)
+func (sc *http2serverConn) startFrameWrite(wr http2FrameWriteRequest)
+func (sc *http2serverConn) wroteFrame(res http2frameWriteResult)
+func (sc *http2serverConn) scheduleFrameWrite()
+func (sc *http2serverConn) startGracefulShutdown()
+func (sc *http2serverConn) startGracefulShutdownInternal()
+func (sc *http2serverConn) goAway(code http2ErrCode)
+func (sc *http2serverConn) shutDownIn(d time.Duration)
+func (sc *http2serverConn) resetStream(se http2StreamError)
+func (sc *http2serverConn) processFrameFromReader(res http2readFrameResult) bool // 将主要逻辑交给 processFrame 函数
+func (sc *http2serverConn) processFrame(f http2Frame) error // 根据帧类型的不同, 选用不同的函数processXXX, 处理拿到的的帧数据
+func (sc *http2serverConn) processPing(f *http2PingFrame) error
+func (sc *http2serverConn) processWindowUpdate(f *http2WindowUpdateFrame) error
+func (sc *http2serverConn) processResetStream(f *http2RSTStreamFrame) error
+func (sc *http2serverConn) closeStream(st *http2stream, err error)
+func (sc *http2serverConn) processSettings(f *http2SettingsFrame) error
+func (sc *http2serverConn) processSetting(s http2Setting) error
+func (sc *http2serverConn) processSettingInitialWindowSize(val uint32) error
+func (sc *http2serverConn) processData(f *http2DataFrame) error  // 将读取到Data帧中的数据, 放到流的body中(http2stream.body)
+func (sc *http2serverConn) processGoAway(f *http2GoAwayFrame) error
+func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error  // 每次遇到Header帧都会创建一个新的协程来处理(每次请求都是一个专有协程来处理)。在这里创建request, 然后调用ServeHTTP, ServeHTTP中根据URI找到用户的函数然后执行。Header帧中包含method scheme path等字段
+func (sc *http2serverConn) processPriority(f *http2PriorityFrame) error
+func (sc *http2serverConn) newStream(id, pusherID uint32, state http2streamState) *http2stream
+func (sc *http2serverConn) newWriterAndRequest(st *http2stream, f *http2MetaHeadersFrame) (*http2responseWriter, *Request, error)  // 根据http2MetaHeadersFrame中的method path等参数创建request
+func (sc *http2serverConn) newWriterAndRequestNoBody(st *http2stream, rp http2requestParam) (*http2responseWriter, *Request, error)  // 创建request的非body部分
+func (sc *http2serverConn) runHandler(rw *http2responseWriter, req *Request, handler func(ResponseWriter, *Request))
+func (sc *http2serverConn) writeHeaders(st *http2stream, headerData *http2writeResHeaders) error
+func (sc *http2serverConn) write100ContinueHeaders(st *http2stream)
+func (sc *http2serverConn) noteBodyReadFromHandler(st *http2stream, n int, err error)
+func (sc *http2serverConn) noteBodyRead(st *http2stream, n int)
+func (sc *http2serverConn) sendWindowUpdate(st *http2stream, n int)
+func (sc *http2serverConn) sendWindowUpdate32(st *http2stream, n int32)
+func (sc *http2serverConn) startPush(msg *http2startPushRequest)
+
+// 流
+type http2stream struct {
+	...
+	body      *http2pipe       // 接收到Data帧的时候, 向这里写入。当用户从request中读取post的body的时候, 从这里读取。
+}
+
+
+// http2Framer 负责从连接中读取帧和向连接中写入帧, 结构体内部拥有tcp连接
+func (fr *http2Framer) maxHeaderListSize() uint32
+func (f *http2Framer) startWrite(ftype http2FrameType, flags http2Flags, streamID uint32)
+func (f *http2Framer) endWrite() error
+func (f *http2Framer) logWrite()
+func (f *http2Framer) writeByte(v byte) { f.wbuf = append(f.wbuf, v) }
+func (f *http2Framer) writeBytes(v []byte) { f.wbuf = append(f.wbuf, v...) }
+func (f *http2Framer) writeUint16(v uint16) { f.wbuf = append(f.wbuf, byte(v>>8), byte(v)) }
+func (f *http2Framer) writeUint32(v uint32)
+func (fr *http2Framer) SetReuseFrames()
+func (fr *http2Framer) SetMaxReadFrameSize(v uint32)
+func (fr *http2Framer) ErrorDetail() error
+func (fr *http2Framer) ReadFrame() (http2Frame, error) // 1.从tcp中读9字节数据,整理为header 2.从header中得到payload的长度,从tcp中读取payload 3.从http2frameParsers中找到类型解析函数,解析payload
+func (fr *http2Framer) connError(code http2ErrCode, reason string) error
+func (fr *http2Framer) checkFrameOrder(f http2Frame) error
+func (f *http2Framer) WriteData(streamID uint32, endStream bool, data []byte) error
+func (f *http2Framer) WriteDataPadded(streamID uint32, endStream bool, data, pad []byte) error
+func (f *http2Framer) WriteSettings(settings ...http2Setting) error
+func (f *http2Framer) WriteSettingsAck() error
+func (f *http2Framer) WritePing(ack bool, data [8]byte) error
+func (f *http2Framer) WriteGoAway(maxStreamID uint32, code http2ErrCode, debugData []byte) error
+func (f *http2Framer) WriteWindowUpdate(streamID, incr uint32) error
+func (f *http2Framer) WriteHeaders(p http2HeadersFrameParam) error
+func (f *http2Framer) WritePriority(streamID uint32, p http2PriorityParam) error
+func (f *http2Framer) WriteRSTStream(streamID uint32, code http2ErrCode) error
+func (f *http2Framer) WriteContinuation(streamID uint32, endHeaders bool, headerBlockFragment []byte) error
+func (f *http2Framer) WritePushPromise(p http2PushPromiseParam) error
+func (f *http2Framer) WriteRawFrame(t http2FrameType, flags http2Flags, streamID uint32, payload []byte) error
+func (fr *http2Framer) maxHeaderStringLen() int
+func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame) (*http2MetaHeadersFrame, error)
+
+// 各FrameType的解析函数
+var http2frameParsers = map[http2FrameType]http2frameParser{
+	http2FrameData:         http2parseDataFrame,
+	http2FrameHeaders:      http2parseHeadersFrame,
+	http2FramePriority:     http2parsePriorityFrame,
+	http2FrameRSTStream:    http2parseRSTStreamFrame,
+	http2FrameSettings:     http2parseSettingsFrame,
+	http2FramePushPromise:  http2parsePushPromise,
+	http2FramePing:         http2parsePingFrame,
+	http2FrameGoAway:       http2parseGoAwayFrame,
+	http2FrameWindowUpdate: http2parseWindowUpdateFrame,
+	http2FrameContinuation: http2parseContinuationFrame,
+}
+
+

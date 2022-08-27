@@ -1,0 +1,162 @@
+// google.golang.org\grpc@v1.41.0\server.go
+type Server struct {
+	opts                 serverOptions
+	mu                   sync.Mutex
+	lis                  map[net.Listener]bool
+	conns                map[string]map[transport.ServerTransport]bool
+	serve                bool
+	drain                bool
+	cv                   *sync.Cond
+	services             map[string]*serviceInfo // grpc调用 三要素: 服务名&方法&参数   这个map就是用来保存不同的服务的
+	events               trace.EventLog
+	quit                 *grpcsync.Event
+	done                 *grpcsync.Event
+	channelzRemoveOnce   sync.Once
+	serveWG              sync.WaitGroup
+	channelzID           int64
+	czData               *channelzData
+	serverWorkerChannels []chan *serverWorkerData
+}
+
+func (s *Server) serverWorker(ch chan *serverWorkerData)
+func (s *Server) initServerWorkers()
+func (s *Server) stopServerWorkers()
+func (s *Server) printf(format string, a ...interface{})
+func (s *Server) errorf(format string, a ...interface{})
+func (s *Server) RegisterService(sd *ServiceDesc, ss interface{})
+func (s *Server) register(sd *ServiceDesc, ss interface{})
+func (s *Server) GetServiceInfo() map[string]ServiceInfo
+func (s *Server) Serve(lis net.Listener) error                   // 处理listener, 循环accept那一套流程
+func (s *Server) handleRawConn(lisAddr string, rawConn net.Conn) // accept到新连接之后, 将新连接交给这个函数。函数中会根据新连接创建一个新transport, 然后调用serveStreams
+func (s *Server) drainServerTransports(addr string)
+func (s *Server) newHTTP2Transport(c net.Conn) transport.ServerTransport
+func (s *Server) serveStreams(st transport.ServerTransport) // Server.serveStreams中会调用http2Server.HandleStreams http2Server.HandleStreams调用Server.handleStream
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
+func (s *Server) traceInfo(st transport.ServerTransport, stream *transport.Stream) (trInfo *traceInfo)
+func (s *Server) addConn(addr string, st transport.ServerTransport) bool
+func (s *Server) removeConn(addr string, st transport.ServerTransport)
+func (s *Server) channelzMetric() *channelz.ServerInternalMetric
+func (s *Server) incrCallsStarted()
+func (s *Server) incrCallsSucceeded()
+func (s *Server) incrCallsFailed()
+func (s *Server) sendResponse(t transport.ServerTransport, stream *transport.Stream, msg interface{}, cp Compressor, opts *transport.Options, comp encoding.Compressor) error
+func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.Stream, info *serviceInfo, md *MethodDesc, trInfo *traceInfo) (err error)     // 处理1次请求
+func (s *Server) processStreamingRPC(t transport.ServerTransport, stream *transport.Stream, info *serviceInfo, sd *StreamDesc, trInfo *traceInfo) (err error) // 处理1次请求
+func (s *Server) handleStream(t transport.ServerTransport, stream *transport.Stream, trInfo *traceInfo)                                                       // 处理1次请求, 借助processUnaryRPC & processStreamingRPC来处理请求
+func (s *Server) Stop()
+func (s *Server) GracefulStop()
+func (s *Server) getCodec(contentSubtype string) baseCodec
+func (c *channelzServer) ChannelzMetric() *channelz.ServerInternalMetric
+
+// google.golang.org\grpc@v1.41.0\internal\transport\http2_server.go
+// http2Server 主要负责http2协议部分, 处理流/帧等
+func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(*Stream), traceCtx func(context.Context, string) context.Context) (fatal bool)
+func (t *http2Server) HandleStreams(handle func(*Stream), traceCtx func(context.Context, string) context.Context) // 读取帧, 处理不同类型的帧, 读到MetaHeadersFrame的时候, 交给Server.handleStream处理这1次请求
+func (t *http2Server) getStream(f http2.Frame) (*Stream, bool)
+func (t *http2Server) adjustWindow(s *Stream, n uint32)
+func (t *http2Server) updateWindow(s *Stream, n uint32)
+func (t *http2Server) updateFlowControl(n uint32)
+func (t *http2Server) handleData(f *http2.DataFrame)
+func (t *http2Server) handleRSTStream(f *http2.RSTStreamFrame)
+func (t *http2Server) handleSettings(f *http2.SettingsFrame)
+func (t *http2Server) handlePing(f *http2.PingFrame)
+func (t *http2Server) handleWindowUpdate(f *http2.WindowUpdateFrame)
+func (t *http2Server) checkForHeaderListSize(it interface{}) bool
+func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error
+func (t *http2Server) setResetPingStrikes()
+func (t *http2Server) writeHeaderLocked(s *Stream) error
+func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error
+func (t *http2Server) Write(s *Stream, hdr []byte, data []byte, opts *Options) error
+func (t *http2Server) keepalive()
+func (t *http2Server) Close()
+func (t *http2Server) deleteStream(s *Stream, eosReceived bool)
+func (t *http2Server) finishStream(s *Stream, rst bool, rstCode http2.ErrCode, hdr *headerFrame, eosReceived bool)
+func (t *http2Server) closeStream(s *Stream, rst bool, rstCode http2.ErrCode, eosReceived bool)
+func (t *http2Server) RemoteAddr() net.Addr
+func (t *http2Server) Drain()
+func (t *http2Server) outgoingGoAwayHandler(g *goAway) (bool, error)
+func (t *http2Server) ChannelzMetric() *channelz.SocketInternalMetric
+func (t *http2Server) IncrMsgSent()
+func (t *http2Server) IncrMsgRecv()
+func (t *http2Server) getOutFlowWindow() int64
+
+type Stream struct {
+	id           uint32
+	st           ServerTransport    // nil for client side Stream
+	ct           *http2Client       // nil for server side Stream
+	ctx          context.Context    // the associated context of the stream
+	cancel       context.CancelFunc // always nil for client side Stream
+	done         chan struct{}      // closed at the end of stream to unblock writers. On the client side.
+	doneFunc     func()             // invoked at the end of stream on client side.
+	ctxDone      <-chan struct{}    // same as done chan but for server side. Cache of ctx.Done() (for performance)
+	method       string             // the associated RPC method of the stream
+	recvCompress string
+	sendCompress string
+	buf          *recvBuffer
+	trReader     io.Reader
+	fc           *inFlow
+	wq           *writeQuota
+
+	// Callback to state application's intentions to read data. This
+	// is used to adjust flow control, if needed.
+	requestRead func(int)
+
+	headerChan       chan struct{} // closed to indicate the end of header metadata.
+	headerChanClosed uint32        // set when headerChan is closed. Used to avoid closing headerChan multiple times.
+	// headerValid indicates whether a valid header was received.  Only
+	// meaningful after headerChan is closed (always call waitOnHeader() before
+	// reading its value).  Not valid on server side.
+	headerValid bool
+
+	// hdrMu protects header and trailer metadata on the server-side.
+	hdrMu sync.Mutex
+	// On client side, header keeps the received header metadata.
+	//
+	// On server side, header keeps the header set by SetHeader(). The complete
+	// header will merged into this after t.WriteHeader() is called.
+	header  metadata.MD
+	trailer metadata.MD // the key-value map of trailer metadata.
+
+	noHeaders bool // set if the client never received headers (set only after the stream is done).
+
+	// On the server-side, headerSent is atomically set to 1 when the headers are sent out.
+	headerSent uint32
+
+	state streamState
+
+	// On client-side it is the status error received from the server.
+	// On server-side it is unused.
+	status *status.Status
+
+	bytesReceived uint32 // indicates whether any bytes have been received on this stream
+	unprocessed   uint32 // set if the server sends a refused stream or GOAWAY including this stream
+
+	// contentSubtype is the content-subtype for requests.
+	// this must be lowercase or the behavior is undefined.
+	contentSubtype string
+}
+
+func (s *Stream) isHeaderSent() bool
+func (s *Stream) updateHeaderSent() bool
+func (s *Stream) swapState(st streamState) streamState
+func (s *Stream) compareAndSwapState(oldState, newState streamState) bool
+func (s *Stream) getState() streamState
+func (s *Stream) waitOnHeader()
+func (s *Stream) RecvCompress() string
+func (s *Stream) SetSendCompress(str string)
+func (s *Stream) Done() <-chan struct{}
+func (s *Stream) Header() (metadata.MD, error)
+func (s *Stream) TrailersOnly() bool
+func (s *Stream) Trailer() metadata.MD
+func (s *Stream) ContentSubtype() string
+func (s *Stream) Context() context.Context
+func (s *Stream) Method() string
+func (s *Stream) Status() *status.Status
+func (s *Stream) SetHeader(md metadata.MD) error
+func (s *Stream) SendHeader(md metadata.MD) error
+func (s *Stream) SetTrailer(md metadata.MD) error
+func (s *Stream) write(m recvMsg)
+func (s *Stream) Read(p []byte) (n int, err error)
+func (s *Stream) BytesReceived() bool
+func (s *Stream) Unprocessed() bool
+func (s *Stream) GoString() string
