@@ -11,8 +11,21 @@ import (
 )
 
 func main() {
+	binary_val()
+	return
 	luascript()
 	fun1()
+}
+
+func aaaaaa() {
+	ctx := context.Background()
+	client := createclient()
+	must(client.Set(ctx, "tanght", []byte{200, 201, 202}, 0).Err())
+	res := client.Get(ctx, "tanght")
+	must(res.Err())
+	val, err := res.Result()
+	must(err)
+	fmt.Println([]byte(val))
 }
 
 func must(err error) {
@@ -202,4 +215,67 @@ func cluster() {
 	// ClusterClient会自动根据key来选择合适的redis节点
 	// 省去了redis服务帮我们重定向的操作, 提高了操作效率
 	client.Get(context.TODO(), "tanght").Result()
+}
+
+// redis存取二进制数据
+func binary_val() {
+	client := createclient()
+	ctx := context.Background()
+	key := "tanght"
+	defer client.Del(ctx, key)
+
+	fmt.Println("Set Get 二进制数据测试-------------")
+
+	// Set 可以存入二进制的val，比如[]byte
+	// Get 可以获取二进制的val
+	must(client.Del(ctx, key).Err())
+	must(client.Set(ctx, key, []byte{200, 201}, 0).Err())
+	val, _ := client.Get(ctx, key).Result()
+	fmt.Println(val) //乱码 因为[200, 201]这个字节流不是ascii字符码
+	fmt.Println([]byte(val))
+
+	fmt.Println("Hset Hget 二进制数据测试-------------")
+
+	// hset 设置 二进制数据
+	// hget 获取 二进制数据
+	must(client.Del(ctx, key).Err())
+	must(client.HSet(ctx, key, "k1", "v1", "k2", []byte{200, 201}).Err())
+
+	val, _ = client.HGet(ctx, key, "k1").Result()
+	fmt.Println(val)
+
+	val, _ = client.HGet(ctx, key, "k2").Result()
+	fmt.Println(val) //乱码
+	fmt.Println([]byte(val))
+
+	fmt.Println("Hset Hget 二进制数据测试-------------")
+	must(client.Del(ctx, key).Err())
+	must(client.SAdd(ctx, key, "abc", "nihao", []byte{200, 201}, []byte{202, 203}).Err())
+
+	// 插入 abc 因为已经存在了所以插入失败
+	cnt, _ := client.SAdd(ctx, key, "abc").Result()
+	fmt.Println(cnt) // 0
+
+	// 插入 []byte{200, 201} 因为已经存在了所以插入失败
+	cnt, _ = client.SAdd(ctx, key, []byte{200, 201}).Result()
+	fmt.Println(cnt) // 0
+
+	// 插入 []byte{201, 202} 因为集合中不存在所以插入成功
+	cnt, _ = client.SAdd(ctx, key, []byte{201, 202}).Result()
+	fmt.Println(cnt) // 1
+
+	// 获取集合中所有元素
+	ss, _ := client.SMembers(ctx, key).Result()
+	for _, v := range ss {
+		fmt.Println([]byte(v))
+	}
+
+	fmt.Println("LPush 二进制数据测试-------------")
+	must(client.Del(ctx, key).Err())
+	must(client.LPush(ctx, key, []byte{'a', 'b', 'c'}).Err())
+	must(client.LPush(ctx, key, []byte{200, 201, 202}).Err())
+	val1, _ := client.LPop(ctx, key).Result()
+	val2, _ := client.LPop(ctx, key).Result()
+	fmt.Println([]byte(val1))
+	fmt.Println([]byte(val2))
 }
