@@ -1,0 +1,8 @@
+func (mux *ServeMux) match(path string) (h Handler, pattern string)
+func (mux *ServeMux) redirectToPathSlash(host, path string, u *url.URL) (*url.URL, bool)
+func (mux *ServeMux) shouldRedirectRLocked(host, path string) bool
+func (mux *ServeMux) Handler(r *Request) (h Handler, pattern string)
+func (mux *ServeMux) handler(host, path string) (h Handler, pattern string)
+func (mux *ServeMux) ServeHTTP(w ResponseWriter, r *Request)
+func (mux *ServeMux) Handle(pattern string, handler Handler)
+func (mux *ServeMux) HandleFunc(pattern string, handler func(ResponseWriter, *Request))
