@@ -15,7 +15,7 @@ type Transport struct {
 	altProto atomic.Value // of nil or map[string]RoundTripper, key is URI scheme
 	connsPerHostMu   sync.Mutex
 	connsPerHost     map[connectMethodKey]int
-	connsPerHostWait map[connectMethodKey]wantConnQueue // waiting getConns
+	connsPerHostWait map[connectMethodKey]wantConnQueue // 等待连接的物体, tryPutIdleConn会优先满足这里, persistConn关闭的时候, 会通知这里可以创建新连接了
 	Proxy func(*Request) (*url.URL, error)
 	DialContext func(ctx context.Context, network, addr string) (net.Conn, error)
 	Dial func(network, addr string) (net.Conn, error)
@@ -43,6 +43,9 @@ type Transport struct {
 	ForceAttemptHTTP2 bool
 }
 
+Transport又名RoundTripper, 主要功能是维护http底层的TCP连接池
+作为https客户端, HTTPS的自签名证书在这里设置, Transport.TLSClientConfig
+作为https客户端, 关闭https的验证也是在这里设置 Transport.TLSClientConfig.InsecureSkipVerify = false
 func (t *Transport) writeBufferSize() int
 func (t *Transport) readBufferSize() int
 func (t *Transport) Clone() *Transport
@@ -50,7 +53,7 @@ func (t *Transport) hasCustomTLSDialer() bool
 func (t *Transport) onceSetNextProtoDefaults()
 func (t *Transport) useRegisteredProtocol(req *Request) bool
 func (t *Transport) alternateRoundTripper(req *Request) RoundTripper
-func (t *Transport) roundTrip(req *Request) (*Response, error)
+func (t *Transport) roundTrip(req *Request) (*Response, error)  // 发出一个http请求
 func (t *Transport) RegisterProtocol(scheme string, rt RoundTripper)
 func (t *Transport) CloseIdleConnections()
 func (t *Transport) CancelRequest(req *Request)
@@ -58,19 +61,19 @@ func (t *Transport) cancelRequest(key cancelKey, err error) bool
 func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectMethod, err error)
 func (t *Transport) putOrCloseIdleConn(pconn *persistConn)
 func (t *Transport) maxIdleConnsPerHost() int
-func (t *Transport) tryPutIdleConn(pconn *persistConn) error
+func (t *Transport) tryPutIdleConn(pconn *persistConn) error  // 将用完的连接且可复用的连接放入空闲连接池, 如果connsPerHostWait有人在等待空闲连接, 则直接将连接交给他
 func (t *Transport) queueForIdleConn(w *wantConn) (delivered bool)
 func (t *Transport) removeIdleConn(pconn *persistConn) bool
 func (t *Transport) removeIdleConnLocked(pconn *persistConn) bool
 func (t *Transport) setReqCanceler(key cancelKey, fn func(error))
 func (t *Transport) replaceReqCanceler(key cancelKey, fn func(error)) bool
-func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, error)
-func (t *Transport) customDialTLS(ctx context.Context, network, addr string) (conn net.Conn, err error)
 func (t *Transport) getConn(treq *transportRequest, cm connectMethod) (pc *persistConn, err error)
+func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, error)  // 没有连接可用时, 创建新连接
+func (t *Transport) customDialTLS(ctx context.Context, network, addr string) (conn net.Conn, err error)
 func (t *Transport) queueForDial(w *wantConn)
 func (t *Transport) dialConnFor(w *wantConn)
 func (t *Transport) decConnsPerHost(key connectMethodKey)
-func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *persistConn, err error)
+func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *persistConn, err error) // 没有连接可用时, 创建新连接
 
 
 type persistConn struct {
@@ -111,11 +114,11 @@ func (pc *persistConn) gotIdleConnTrace(idleAt time.Time) (t httptrace.GotConnIn
 func (pc *persistConn) cancelRequest(err error)
 func (pc *persistConn) closeConnIfStillIdle()
 func (pc *persistConn) mapRoundTripError(req *transportRequest, startBytesWritten int64, err error) error
-func (pc *persistConn) readLoop()
+func (pc *persistConn) readLoop()  // 这个函数在单独的协程中运行, 这个函数结束时, 会关闭tcp连接。当它收到的响应头中的Connection: close时, 这个函数会结束。
 func (pc *persistConn) readLoopPeekFailLocked(peekErr error)
 func (pc *persistConn) readResponse(rc requestAndChan, trace *httptrace.ClientTrace) (resp *Response, err error)
 func (pc *persistConn) waitForContinue(continueCh <-chan struct{}) func() bool
-func (pc *persistConn) writeLoop()
+func (pc *persistConn) writeLoop() // 这个函数在单独的协程中运行, 这个函数遇到错误时, 会关闭tcp连接。
 func (pc *persistConn) wroteRequest() bool
 func (pc *persistConn) roundTrip(req *transportRequest) (resp *Response, err error)
 func (pc *persistConn) markReused()
