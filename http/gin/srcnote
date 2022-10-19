@@ -129,3 +129,62 @@ func (c *Context) Deadline() (deadline time.Time, ok bool)
 func (c *Context) Done() <-chan struct{}
 func (c *Context) Err() error
 func (c *Context) Value(key any) any
+
+
+engine.trees 格式为 {"POST": router_tree, "GET": router_tree, "DELETE": router_tree ...}
+engine.trees可以通过method快速找到router_tree
+func (engine *Engine) Handler() http.Handler
+func (engine *Engine) allocateContext() *Context
+func (engine *Engine) Delims(left, right string) *Engine
+func (engine *Engine) SecureJsonPrefix(prefix string) *Engine
+func (engine *Engine) LoadHTMLGlob(pattern string)
+func (engine *Engine) LoadHTMLFiles(files ...string)
+func (engine *Engine) SetHTMLTemplate(templ *template.Template)
+func (engine *Engine) SetFuncMap(funcMap template.FuncMap)
+func (engine *Engine) NoRoute(handlers ...HandlerFunc)
+func (engine *Engine) NoMethod(handlers ...HandlerFunc)
+func (engine *Engine) Use(middleware ...HandlerFunc) IRoutes
+func (engine *Engine) rebuild404Handlers()
+func (engine *Engine) rebuild405Handlers()
+func (engine *Engine) addRoute(method, path string, handlers HandlersChain)
+func (engine *Engine) Routes() (routes RoutesInfo)
+func (engine *Engine) Run(addr ...string) (err error)
+func (engine *Engine) prepareTrustedCIDRs() ([]*net.IPNet, error)
+func (engine *Engine) SetTrustedProxies(trustedProxies []string) error
+func (engine *Engine) isUnsafeTrustedProxies() bool
+func (engine *Engine) parseTrustedProxies() error
+func (engine *Engine) isTrustedProxy(ip net.IP) bool
+func (engine *Engine) validateHeader(header string) (clientIP string, valid bool)
+func (engine *Engine) RunTLS(addr, certFile, keyFile string) (err error)
+func (engine *Engine) RunUnix(file string) (err error)
+func (engine *Engine) RunFd(fd int) (err error)
+func (engine *Engine) RunListener(listener net.Listener) (err error)
+func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request)
+func (engine *Engine) HandleContext(c *Context)
+func (engine *Engine) handleHTTPRequest(c *Context)
+
+
+
+
+func (group *RouterGroup) Use(middleware ...HandlerFunc) IRoutes
+func (group *RouterGroup) Group(relativePath string, handlers ...HandlerFunc) *RouterGroup
+func (group *RouterGroup) BasePath() string
+func (group *RouterGroup) handle(httpMethod, relativePath string, handlers HandlersChain) IRoutes
+func (group *RouterGroup) Handle(httpMethod, relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) POST(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) GET(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) DELETE(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) PATCH(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) PUT(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) OPTIONS(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) HEAD(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) Any(relativePath string, handlers ...HandlerFunc) IRoutes
+func (group *RouterGroup) StaticFile(relativePath, filepath string) IRoutes
+func (group *RouterGroup) StaticFileFS(relativePath, filepath string, fs http.FileSystem) IRoutes
+func (group *RouterGroup) staticFileHandler(relativePath string, handler HandlerFunc) IRoutes
+func (group *RouterGroup) Static(relativePath, root string) IRoutes
+func (group *RouterGroup) StaticFS(relativePath string, fs http.FileSystem) IRoutes
+func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc
+func (group *RouterGroup) combineHandlers(handlers HandlersChain) HandlersChain
+func (group *RouterGroup) calculateAbsolutePath(relativePath string) string
+func (group *RouterGroup) returnObj() IRoutes

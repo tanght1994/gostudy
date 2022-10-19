@@ -1,0 +1,123 @@
+type connectMethodKey struct {
+	proxy, scheme, addr string
+	onlyH1              bool
+}
+
+type Transport struct {
+	idleMu       sync.Mutex
+	closeIdle    bool                                // user has requested to close all idle conns
+	idleConn     map[connectMethodKey][]*persistConn // most recently used at end
+	idleConnWait map[connectMethodKey]wantConnQueue  // waiting getConns
+	idleLRU      connLRU
+	reqMu       sync.Mutex
+	reqCanceler map[cancelKey]func(error)
+	altMu    sync.Mutex   // guards changing altProto only
+	altProto atomic.Value // of nil or map[string]RoundTripper, key is URI scheme
+	connsPerHostMu   sync.Mutex
+	connsPerHost     map[connectMethodKey]int
+	connsPerHostWait map[connectMethodKey]wantConnQueue // waiting getConns
+	Proxy func(*Request) (*url.URL, error)
+	DialContext func(ctx context.Context, network, addr string) (net.Conn, error)
+	Dial func(network, addr string) (net.Conn, error)
+	DialTLSContext func(ctx context.Context, network, addr string) (net.Conn, error)
+	DialTLS func(network, addr string) (net.Conn, error)
+	TLSClientConfig *tls.Config
+	TLSHandshakeTimeout time.Duration
+	DisableKeepAlives bool
+	DisableCompression bool
+	MaxIdleConns int
+	MaxIdleConnsPerHost int
+	MaxConnsPerHost int
+	IdleConnTimeout time.Duration
+	ResponseHeaderTimeout time.Duration
+	ExpectContinueTimeout time.Duration
+	TLSNextProto map[string]func(authority string, c *tls.Conn) RoundTripper
+	ProxyConnectHeader Header
+	GetProxyConnectHeader func(ctx context.Context, proxyURL *url.URL, target string) (Header, error)
+	MaxResponseHeaderBytes int64
+	WriteBufferSize int
+	ReadBufferSize int
+	nextProtoOnce      sync.Once
+	h2transport        h2Transport // non-nil if http2 wired up
+	tlsNextProtoWasNil bool        // whether TLSNextProto was nil when the Once fired
+	ForceAttemptHTTP2 bool
+}
+
+func (t *Transport) writeBufferSize() int
+func (t *Transport) readBufferSize() int
+func (t *Transport) Clone() *Transport
+func (t *Transport) hasCustomTLSDialer() bool
+func (t *Transport) onceSetNextProtoDefaults()
+func (t *Transport) useRegisteredProtocol(req *Request) bool
+func (t *Transport) alternateRoundTripper(req *Request) RoundTripper
+func (t *Transport) roundTrip(req *Request) (*Response, error)
+func (t *Transport) RegisterProtocol(scheme string, rt RoundTripper)
+func (t *Transport) CloseIdleConnections()
+func (t *Transport) CancelRequest(req *Request)
+func (t *Transport) cancelRequest(key cancelKey, err error) bool
+func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectMethod, err error)
+func (t *Transport) putOrCloseIdleConn(pconn *persistConn)
+func (t *Transport) maxIdleConnsPerHost() int
+func (t *Transport) tryPutIdleConn(pconn *persistConn) error
+func (t *Transport) queueForIdleConn(w *wantConn) (delivered bool)
+func (t *Transport) removeIdleConn(pconn *persistConn) bool
+func (t *Transport) removeIdleConnLocked(pconn *persistConn) bool
+func (t *Transport) setReqCanceler(key cancelKey, fn func(error))
+func (t *Transport) replaceReqCanceler(key cancelKey, fn func(error)) bool
+func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, error)
+func (t *Transport) customDialTLS(ctx context.Context, network, addr string) (conn net.Conn, err error)
+func (t *Transport) getConn(treq *transportRequest, cm connectMethod) (pc *persistConn, err error)
+func (t *Transport) queueForDial(w *wantConn)
+func (t *Transport) dialConnFor(w *wantConn)
+func (t *Transport) decConnsPerHost(key connectMethodKey)
+func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *persistConn, err error)
+
+
+type persistConn struct {
+	alt RoundTripper
+	t         *Transport
+	cacheKey  connectMethodKey
+	conn      net.Conn
+	tlsState  *tls.ConnectionState
+	br        *bufio.Reader       // from conn
+	bw        *bufio.Writer       // to conn
+	nwrite    int64               // bytes written
+	reqch     chan requestAndChan // written by roundTrip; read by readLoop
+	writech   chan writeRequest   // written by roundTrip; read by writeLoop
+	closech   chan struct{}       // closed when conn closed
+	isProxy   bool
+	sawEOF    bool  // whether we've seen EOF from conn; owned by readLoop
+	readLimit int64 // bytes allowed to be read; owned by readLoop
+	writeErrCh chan error
+	writeLoopDone chan struct{} // closed when write loop ends
+	idleAt    time.Time   // time it last become idle
+	idleTimer *time.Timer // holding an AfterFunc to close it
+	mu                   sync.Mutex // guards following fields
+	numExpectedResponses int
+	closed               error // set non-nil when conn is closed, before closech is closed
+	canceledErr          error // set non-nil if conn is canceled
+	broken               bool  // an error has happened on this connection; marked broken so it's not reused.
+	reused               bool  // whether conn has had successful request/response and is being reused.
+	mutateHeaderFunc func(Header)
+}
+
+func (pc *persistConn) shouldRetryRequest(req *Request, err error) bool
+func (pc *persistConn) maxHeaderResponseSize() int64
+func (pc *persistConn) Read(p []byte) (n int, err error)
+func (pc *persistConn) isBroken() bool
+func (pc *persistConn) canceled() error
+func (pc *persistConn) isReused() bool
+func (pc *persistConn) gotIdleConnTrace(idleAt time.Time) (t httptrace.GotConnInfo)
+func (pc *persistConn) cancelRequest(err error)
+func (pc *persistConn) closeConnIfStillIdle()
+func (pc *persistConn) mapRoundTripError(req *transportRequest, startBytesWritten int64, err error) error
+func (pc *persistConn) readLoop()
+func (pc *persistConn) readLoopPeekFailLocked(peekErr error)
+func (pc *persistConn) readResponse(rc requestAndChan, trace *httptrace.ClientTrace) (resp *Response, err error)
+func (pc *persistConn) waitForContinue(continueCh <-chan struct{}) func() bool
+func (pc *persistConn) writeLoop()
+func (pc *persistConn) wroteRequest() bool
+func (pc *persistConn) roundTrip(req *transportRequest) (resp *Response, err error)
+func (pc *persistConn) markReused()
+func (pc *persistConn) close(err error)
+func (pc *persistConn) closeLocked(err error)
