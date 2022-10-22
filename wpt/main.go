@@ -253,7 +253,7 @@ func printStatInfo(expectCnt int) {
 	fmt.Println("状态码    个数           百分比%")
 	for _, code := range codes {
 		cnt := StatStatusCode[code]
-		per := float64(cnt) / float64(actualCnt)
+		per := float64(cnt) / float64(actualCnt) * 100
 		fmt.Printf("%-10d%-15d%.2f\n", code, cnt, per)
 	}
 	fmt.Println("")
