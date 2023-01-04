@@ -316,11 +316,11 @@ func printStatInfo() {
 	sort.Ints(codes)
 
 	fmt.Println("")
-	fmt.Printf("计划发送%d个请求\n", g_CountLimit)
-	fmt.Printf("实际发送%d个请求\n", actualCnt)
-	fmt.Printf("总耗时%.2f秒\n", g_StatTotalTime)
-	fmt.Printf("平均QPS%d\n", int(float64(actualCnt)/g_StatTotalTime))
-	fmt.Printf("总接收数据量%s(大致)\n", formatDataSize(int(g_StatDataSize))) // header数据可能不准确, 且未统计FirstLine
+	fmt.Printf("计划发送 %d 个请求\n", g_CountLimit)
+	fmt.Printf("实际发送 %d 个请求\n", actualCnt)
+	fmt.Printf("总耗时 %.2f 秒\n", g_StatTotalTime)
+	fmt.Printf("平均QPS %d \n", int(float64(actualCnt)/g_StatTotalTime))
+	fmt.Printf("总接收数据量 %s (大致)\n", formatDataSize(int(g_StatDataSize))) // header数据可能不准确, 且未统计FirstLine
 	fmt.Println("")
 	fmt.Println("状态码    个数           百分比%")
 	for _, code := range codes {

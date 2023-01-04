@@ -1,0 +1,153 @@
+func (dialector Dialector) Name() string
+func (dialector Dialector) NowFunc(n int) func() time.Time
+func (dialector Dialector) Apply(config *gorm.Config) error
+func (dialector Dialector) Initialize(db *gorm.DB) (err error)
+func (dialector Dialector) ClauseBuilders() map[string]clause.ClauseBuilder
+func (dialector Dialector) DefaultValueOf(field *schema.Field) clause.Expression
+func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator
+func (dialector Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{})
+func (dialector Dialector) QuoteTo(writer clause.Writer, str string)
+func (dialector Dialector) Explain(sql string, vars ...interface{}) string
+func (dialector Dialector) DataTypeOf(field *schema.Field) string
+func (dialector Dialector) getSchemaFloatType(field *schema.Field) string
+func (dialector Dialector) getSchemaStringType(field *schema.Field) string
+func (dialector Dialector) getSchemaTimeType(field *schema.Field) string
+func (dialector Dialector) getSchemaBytesType(field *schema.Field) string
+func (dialector Dialector) getSchemaIntAndUnitType(field *schema.Field) string
+func (dialector Dialector) getSchemaCustomType(field *schema.Field) string
+func (dialector Dialector) SavePoint(tx *gorm.DB, name string) error
+func (dialector Dialector) RollbackTo(tx *gorm.DB, name string) error
+
+通过调用Statement的AddClause向Statement中添加clause
+各种clause都拥有一个Build(writer)的方法, 此方法将SQL语句写入writer
+Statement中有一个SQL字段, 这个字段是stringbuilder
+Statement遍历自己的clause列表, 对每个clause调用Build, 并将自己作为参数传给Build
+所以clause代表的SQL语句最终会写入到Statement.SQL这个字段中, 这个字段是一个string
+
+func (stmt *Statement) WriteString(str string) (int, error) // 向stmt.SQL中写入str
+func (stmt *Statement) WriteByte(c byte) error              // 向stmt.SQL中写入c
+func (stmt *Statement) WriteQuoted(value interface{})
+func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{})
+func (stmt *Statement) Quote(field interface{}) string
+func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{})
+func (stmt *Statement) AddClause(v clause.Interface) // clause.Interface 是一种语句 (SELECT INSERT WHERE GROUP BY LIMIT UPDATE DELETE语句等等), clause.Interface 能向外写字符串, 如"LIMIT 1 OFFSET 10"
+func (stmt *Statement) AddClauseIfNotExists(v clause.Interface)
+func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []clause.Expression
+func (stmt *Statement) Build(clauses ...string)
+func (stmt *Statement) Parse(value interface{}) (err error)
+func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error)
+func (stmt *Statement) clone() *Statement
+func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks ...bool)
+func (stmt *Statement) Changed(fields ...string) bool
+func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (map[string]bool, bool)
+
+
+
+SELECT * FROM `abc` WHERE a > 10 LIMIT 1 OFFSET 2;  对于这样一条SQL语句, gorm是如何拼装出来的呢?
+Statement 代表这整条语句
+Clause 代表部分语句如 "WHERE a > 10"   "LIMIT 1 OFFSET 2"
+Statement.AddClause()向Statement.Clauses字典中添加Clause
+Clause.Build(out) 向out中输出自己所代表的SQL字符串, 如"LIMIT 1 OFFSET 2"
+*Statement Build() 会调用自己的Clauses字典中的所有Clause的Build
+*DB.Where() *DB.Select() *DB.Limit() 等函数, 都是在调用DB内部的Statement的AddClause()函数来保存各种Clause
+*DB.Rows()的时候就会调用 Statement.Build() 生成完整的SQL语句保存在Statement的SQL字段中, 然后DB会找一个原始的SQL连接来执行原始的QueryContext
+
+
+
+
+
+
+
+
+
+
+
+
+type DB struct {
+    *Config
+    Error        error
+    RowsAffected int64
+    Statement    *Statement
+    clone        int
+}
+
+
+func (*DB).Migrator() Migrator
+func (*DB).AutoMigrate(dst ...interface{}) error
+func (*DB).Session(config *Session) *DB
+
+func (*DB).Begin(opts ...*sql.TxOptions) *DB
+func (*DB).Commit() *DB
+func (*DB).Rollback() *DB
+func (*DB).RollbackTo(name string) *DB
+
+// 给hooks传值
+func (*DB).Get(key string) (interface{}, bool)
+func (*DB).Set(key string, value interface{}) *DB
+func (*DB).InstanceGet(key string) (interface{}, bool)
+func (*DB).InstanceSet(key string, value interface{}) *DB
+
+// SQL语句
+func (*DB).Table(name string, args ...interface{}) (tx *DB) // 设置表名称
+func (*DB).Model(value interface{}) (tx *DB) // 设置表名称
+func (*DB).Limit(limit int) (tx *DB)
+func (*DB).Offset(offset int) (tx *DB)
+func (*DB).Select(query interface{}, args ...interface{}) (tx *DB) // querying, creating, updating 时指定字段, 不指定就是全部字段
+func (*DB).Omit(columns ...string) (tx *DB)  // querying, creating, updating 时忽略某些字段
+func (*DB).Update(column string, value interface{}) (tx *DB)  // update语句
+func (*DB).UpdateColumn(column string, value interface{}) (tx *DB)  // update语句
+func (*DB).UpdateColumns(values interface{}) (tx *DB)  // update语句
+func (*DB).Updates(values interface{}) (tx *DB)  // update语句
+func (*DB).Save(value interface{}) (tx *DB) // 不存在就创建, 存在就更新
+func (*DB).Where(query interface{}, args ...interface{}) (tx *DB)
+func (*DB).Order(value interface{}) (tx *DB)
+func (*DB).Group(name string) (tx *DB)
+func (*DB).Having(query interface{}, args ...interface{}) (tx *DB)
+func (*DB).Delete(value interface{}, conds ...interface{}) (tx *DB)
+func (*DB).Distinct(args ...interface{}) (tx *DB)
+func (*DB).Exec(sql string, values ...interface{}) (tx *DB)  // 执行原始SQL语句
+func (*DB).Find(dest interface{}, conds ...interface{}) (tx *DB)
+func (*DB).First(dest interface{}, conds ...interface{}) (tx *DB)
+func (*DB).FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB)
+func (*DB).FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB)
+func (*DB).Or(query interface{}, args ...interface{}) (tx *DB)
+func (*DB).Last(dest interface{}, conds ...interface{}) (tx *DB)
+func (*DB).Not(query interface{}, args ...interface{}) (tx *DB)
+
+
+
+
+
+func (*DB).Callback() *callbacks
+func (*DB).Clauses(conds ...clause.Expression) (tx *DB)
+func (*DB).Connection(fc func(tx *DB) error) (err error)
+func (*DB).Count(count *int64) (tx *DB)
+func (*DB).Create(value interface{}) (tx *DB)
+func (*DB).CreateInBatches(value interface{}, batchSize int) (tx *DB)
+func (*DB).DB() (*sql.DB, error)
+func (*DB).Debug() (tx *DB)
+func (*DB).FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB
+func (*DB).Joins(query string, args ...interface{}) (tx *DB)
+func (*DB).Pluck(column string, dest interface{}) (tx *DB)
+func (*DB).Preload(query string, args ...interface{}) (tx *DB)
+func (*DB).Raw(sql string, values ...interface{}) (tx *DB)
+func (*DB).Row() *sql.Row
+func (*DB).Rows() (*sql.Rows, error)
+func (*DB).SavePoint(name string) *DB
+func (*DB).Scan(dest interface{}) (tx *DB)
+func (*DB).ScanRows(rows *sql.Rows, dest interface{}) error
+func (*DB).Scopes(funcs ...func(*DB) *DB) (tx *DB)
+func (*DB).SetupJoinTable(model interface{}, field string, joinTable interface{}) error
+func (*DB).Take(dest interface{}, conds ...interface{}) (tx *DB)
+func (*DB).ToSQL(queryFn func(tx *DB) *DB) string
+func (*DB).Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err error)
+func (*DB).Unscoped() (tx *DB)
+func (*DB).Use(plugin Plugin) error
+func (*DB).WithContext(ctx context.Context) *DB
+func (*DB).assignInterfacesToValue(values ...interface{})
+func (*DB).getInstance() *DB
+func (*DB).scanIntoStruct(rows Rows, reflectValue reflect.Value, values []interface{}, fields []*schema.Field, joinFields [][2]*schema.Field)
+func (*DB).AddError(err error) error
+func (*DB).Assign(attrs ...interface{}) (tx *DB)
+func (*DB).Association(column string) *Association
+func (*DB).Attrs(attrs ...interface{}) (tx *DB)

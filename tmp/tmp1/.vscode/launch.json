@@ -10,6 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
+            "args": ["-abc=10"],
             // "env": {
             //     "GODEBUG": "gctrace=1"
             // }
