@@ -106,14 +106,23 @@ func (*DB).Having(query interface{}, args ...interface{}) (tx *DB)
 func (*DB).Delete(value interface{}, conds ...interface{}) (tx *DB)
 func (*DB).Distinct(args ...interface{}) (tx *DB)
 func (*DB).Exec(sql string, values ...interface{}) (tx *DB)  // 执行原始SQL语句
-func (*DB).Find(dest interface{}, conds ...interface{}) (tx *DB)
-func (*DB).First(dest interface{}, conds ...interface{}) (tx *DB)
 func (*DB).FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB)
 func (*DB).FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB)
 func (*DB).Or(query interface{}, args ...interface{}) (tx *DB)
-func (*DB).Last(dest interface{}, conds ...interface{}) (tx *DB)
 func (*DB).Not(query interface{}, args ...interface{}) (tx *DB)
 
+// GORM分3步, 1.拼装SQL 2.执行SQL 3.SQL结果放入dest
+// Where Limit Offset Having 等函数是第1步
+// SQL结果放在tx.Statement.Dest字段中, 需要以下函数来将SQL结果放到我们的dest中
+// 以下函数执行2和3步(忽略conds)
+func (*DB).First(dest interface{}, conds ...interface{}) (tx *DB)   // 将QueryContext的返回值scan到dest中
+func (*DB).Take(dest interface{}, conds ...interface{}) (tx *DB)    // 同上
+func (*DB).Last(dest interface{}, conds ...interface{}) (tx *DB)    // 同上
+func (*DB).Find(dest interface{}, conds ...interface{}) (tx *DB)    // 同上
+func (*DB).Row() *sql.Row               // 返回原生sql的QueryRowContext的返回值
+func (*DB).Rows() (*sql.Rows, error)    // 返回原生sql的QueryContext的返回值
+func (*DB).Pluck(column string, dest interface{}) (tx *DB)
+func (*DB).Count(count *int64) (tx *DB)
 
 
 
@@ -121,24 +130,19 @@ func (*DB).Not(query interface{}, args ...interface{}) (tx *DB)
 func (*DB).Callback() *callbacks
 func (*DB).Clauses(conds ...clause.Expression) (tx *DB)
 func (*DB).Connection(fc func(tx *DB) error) (err error)
-func (*DB).Count(count *int64) (tx *DB)
 func (*DB).Create(value interface{}) (tx *DB)
 func (*DB).CreateInBatches(value interface{}, batchSize int) (tx *DB)
 func (*DB).DB() (*sql.DB, error)
 func (*DB).Debug() (tx *DB)
 func (*DB).FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB
 func (*DB).Joins(query string, args ...interface{}) (tx *DB)
-func (*DB).Pluck(column string, dest interface{}) (tx *DB)
 func (*DB).Preload(query string, args ...interface{}) (tx *DB)
 func (*DB).Raw(sql string, values ...interface{}) (tx *DB)
-func (*DB).Row() *sql.Row
-func (*DB).Rows() (*sql.Rows, error)
 func (*DB).SavePoint(name string) *DB
 func (*DB).Scan(dest interface{}) (tx *DB)
 func (*DB).ScanRows(rows *sql.Rows, dest interface{}) error
 func (*DB).Scopes(funcs ...func(*DB) *DB) (tx *DB)
 func (*DB).SetupJoinTable(model interface{}, field string, joinTable interface{}) error
-func (*DB).Take(dest interface{}, conds ...interface{}) (tx *DB)
 func (*DB).ToSQL(queryFn func(tx *DB) *DB) string
 func (*DB).Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err error)
 func (*DB).Unscoped() (tx *DB)
@@ -151,3 +155,8 @@ func (*DB).AddError(err error) error
 func (*DB).Assign(attrs ...interface{}) (tx *DB)
 func (*DB).Association(column string) *Association
 func (*DB).Attrs(attrs ...interface{}) (tx *DB)
+
+
+// gorm.Open(dialector, opts) -> dialector.Initialize(db) -> callbacks.RegisterDefaultCallbacks() -> xxxCallback.Register()
+// 重要函数
+RegisterDefaultCallbacks
