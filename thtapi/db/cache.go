@@ -1,79 +1,140 @@
 package db
 
-import "sync"
+import (
+	"sync"
+	"thtapi/common"
+)
 
 var (
-	url2url         map[string]string
-	serverName2Addr map[string][]string
-	userGroup       map[string][]string
-	groupPermission map[string]map[string]struct{}
-	userToken       map[string]string
-	urlWhiteList    map[string]struct{}
+	cacheURL2EndPoint    = make(map[string]string)
+	cacheSvcName2SvcAddr = make(map[string][]string)
+	cacheUserGroup       = make(map[string][]string)
+	cacheGroupURL        = make(map[string]map[string]struct{})
+	cacheURLWhiteList    = make(map[string]struct{})
+	cacheUserToken       = make(map[string]string)
 
-	tagURL2url         int64
-	tagServerName2Addr int64
+	tagURL2EndPoint    int64
+	tagSvcName2SvcAddr int64
 	tagUserGroup       int64
-	tagGroupPermission int64
-	tagUserToken       int64
+	tagGroupURL        int64
 	tagURLWhiteList    int64
+	tagUserToken       int64
 
 	synclock sync.RWMutex
 )
 
-func syncdb() {
-	syncurl2url()
-	syncServerName2Addr()
+func updateCache() {
+	syncURL2EndPoint()
+	syncSvcName2SvcAddr()
 	syncUserGroup()
-	syncGroupPermission()
-	syncurlWhiteList()
+	syncGroupURL()
+	syncURLWhiteList()
 }
 
 func getTableModifiedTag(tableName string) int64 {
 	tag := []int64{}
-	mydb.Table(tableName).Select("tag").Where("name=?", tableName).Find(&tag)
+	mydb.Model(modelTableModified{}).Select("tag").Where("name=?", tableName).Find(&tag)
 	if len(tag) == 0 {
 		return -1
 	}
 	return tag[0]
 }
 
-func syncurl2url() {
-	tag := getTableModifiedTag(URL2URL{}.TableName())
+func syncURL2EndPoint() {
+	tag := getTableModifiedTag(modelURL2EndPoint{}.TableName())
 	defer func() {
-		tagURL2url = tag
+		tagURL2EndPoint = tag
 	}()
-	if tag == tagURL2url || tag == -1 {
+	if tag == tagURL2EndPoint || tag == -1 {
 		return
 	}
-	// 同步
-	datas := []URL2URL{}
-	mydb.Model(URL2URL{}).Find(&datas)
+
+	datas := []modelURL2EndPoint{}
+	mydb.Model(modelURL2EndPoint{}).Find(&datas)
 	synclock.Lock()
 	defer synclock.Unlock()
-	url2url = make(map[string]string)
+	cacheURL2EndPoint = make(map[string]string)
 	for _, data := range datas {
-		url2url[data.OriginURL] = data.TargetURL
+		cacheURL2EndPoint[data.URL] = data.EndPoint
 	}
+	common.LogCritical("sync cacheURL2EndPoint ok")
 }
 
-func syncServerName2Addr() {
-	tag := getTableModifiedTag(ServerAddr{}.TableName())
+func syncSvcName2SvcAddr() {
+	tag := getTableModifiedTag(modelSvcName2SvcAddr{}.TableName())
 	defer func() {
-		tagURL2url = tag
+		tagURL2EndPoint = tag
 	}()
-	if tag == tagURL2url || tag == -1 {
+	if tag == tagURL2EndPoint || tag == -1 {
 		return
 	}
+
+	datas := []modelSvcName2SvcAddr{}
+	mydb.Model(modelSvcName2SvcAddr{}).Where("status=?", "on").Find(&datas)
+	synclock.Lock()
+	defer synclock.Unlock()
+	for _, data := range datas {
+		cacheSvcName2SvcAddr[data.SvcName] = append(cacheSvcName2SvcAddr[data.SvcName], data.SvcAddr)
+	}
+	common.LogCritical("sync cacheSvcName2SvcAddr ok")
 }
 
 func syncUserGroup() {
+	tag := getTableModifiedTag(modelUserGroup{}.TableName())
+	defer func() {
+		tagUserGroup = tag
+	}()
+	if tag == tagUserGroup || tag == -1 {
+		return
+	}
 
+	datas := []modelUserGroup{}
+	mydb.Find(&datas)
+	synclock.Lock()
+	defer synclock.Unlock()
+	for _, data := range datas {
+		cacheUserGroup[data.Username] = append(cacheUserGroup[data.Username], data.GroupName)
+	}
+	common.LogCritical("sync cacheUserGroup ok")
 }
 
-func syncGroupPermission() {
+func syncGroupURL() {
+	tag := getTableModifiedTag(modelGroupURL{}.TableName())
+	defer func() {
+		tagGroupURL = tag
+	}()
+	if tag == tagGroupURL || tag == -1 {
+		return
+	}
 
+	datas := []modelGroupURL{}
+	mydb.Find(&datas)
+	synclock.Lock()
+	defer synclock.Unlock()
+	for _, data := range datas {
+		if _, ok := cacheGroupURL[data.GroupName]; !ok {
+			cacheGroupURL[data.GroupName] = make(map[string]struct{})
+		}
+		cacheGroupURL[data.GroupName][data.URL] = struct{}{}
+	}
+	common.LogCritical("sync cacheGroupURL ok")
 }
 
-func syncurlWhiteList() {
+func syncURLWhiteList() {
+	tag := getTableModifiedTag(modelURLWhiteList{}.TableName())
+	defer func() {
+		tagURLWhiteList = tag
+	}()
+	if tag == tagURLWhiteList || tag == -1 {
+		return
+	}
 
+	datas := []modelURLWhiteList{}
+	mydb.Find(&datas)
+	synclock.Lock()
+	defer synclock.Unlock()
+	for _, data := range datas {
+		cacheURLWhiteList[data.URL] = struct{}{}
+	}
+	common.LogCritical("sync cacheURLWhiteList ok")
 }

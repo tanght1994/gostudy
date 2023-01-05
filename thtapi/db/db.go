@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"thtapi/common"
@@ -20,45 +19,27 @@ func init() {
 	mydb.Set("gorm:table_options", "CHARSET=utf8")
 	mydb.Set("gorm:table_options", "collation=utf8_unicode_ci")
 	err = mydb.AutoMigrate(
-		&UserPassword{},
-		&UserInfo{},
-		&GroupURL{},
-		&UserGroup{},
-		&URLWhiteList{},
-		&ServerAddr{},
-		&URL2URL{})
+		modelUserPassword{},
+		modelUserInfo{},
+		modelGroupURL{},
+		modelUserGroup{},
+		modelURLWhiteList{},
+		modelSvcName2SvcAddr{},
+		modelURL2EndPoint{},
+		modelTableModified{})
 	must(err, "DB.AutoMigrate error, ")
-	// if !mydb.Migrator().HasTable(&UserPassword{}) {
-	// 	err = mydb.Migrator().CreateTable(UserPassword{})
-	// 	must(err, "创建表失败,")
-	// }
-	// if !mydb.Migrator().HasTable(&UserInfo{}) {
-	// 	err = mydb.Migrator().CreateTable(UserInfo{})
-	// 	must(err, "创建表失败,")
-	// }
-	// if !mydb.Migrator().HasTable(&GroupURL{}) {
-	// 	err = mydb.Migrator().CreateTable(GroupURL{})
-	// 	must(err, "创建表失败,")
-	// }
-	// if !mydb.Migrator().HasTable(&UserGroup{}) {
-	// 	err = mydb.Migrator().CreateTable(UserGroup{})
-	// 	must(err, "创建表失败,")
-	// }
-	// if !mydb.Migrator().HasTable(&URLWhiteList{}) {
-	// 	err = mydb.Migrator().CreateTable(URLWhiteList{})
-	// 	must(err, "创建表失败,")
-	// }
-	// if !mydb.Migrator().HasTable(&ServerAddr{}) {
-	// 	err = mydb.Migrator().CreateTable(ServerAddr{})
-	// 	must(err, "创建表失败,")
-	// }
-	// if !mydb.Migrator().HasTable(&URL2URL{}) {
-	// 	err = mydb.Migrator().CreateTable(URL2URL{})
-	// 	must(err, "创建表失败,")
-	// }
+	initTableData()
 	common.LogCritical("数据库初始化成功")
+	updateCache()
+}
 
-	syncdb()
+func initTableData() {
+	mydb.Delete(modelTableModified{}, "1=1")
+	mydb.Create(&modelTableModified{Name: modelURL2EndPoint{}.TableName(), Tag: 1})
+	mydb.Create(&modelTableModified{Name: modelSvcName2SvcAddr{}.TableName(), Tag: 1})
+	mydb.Create(&modelTableModified{Name: modelUserGroup{}.TableName(), Tag: 1})
+	mydb.Create(&modelTableModified{Name: modelGroupURL{}.TableName(), Tag: 1})
+	mydb.Create(&modelTableModified{Name: modelURLWhiteList{}.TableName(), Tag: 1})
 }
 
 func must(err error, msg string) {
@@ -66,9 +47,4 @@ func must(err error, msg string) {
 		common.LogError(msg + err.Error())
 		os.Exit(1)
 	}
-}
-
-// A ...
-func A() {
-	fmt.Println("A")
 }
