@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"net/http"
 	"thtapi/db"
+
+	"github.com/gin-gonic/gin"
 )
 
 func proxy(w http.ResponseWriter, r *http.Request) {
@@ -61,4 +63,5 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func setEndPoint(w http.ResponseWriter, r *http.Request) {}
+func setEndPoint(ginctx *gin.Context) {
+}

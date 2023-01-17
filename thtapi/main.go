@@ -6,10 +6,16 @@ import (
 	"os"
 	"thtapi/common"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Requester ...
-var Requester http.Client
+var (
+	// Requester ...
+	Requester http.Client
+	// GinEngine ...
+	GinEngine *gin.Engine
+)
 
 func main() {
 	common.SetLogLevel(common.LevelDebug)
@@ -34,7 +40,8 @@ func must(err error) {
 }
 
 func registerHandleFunc() {
+	GinEngine.Any("", nil)
+	GinEngine.POST("/interval/set_endpoint", setEndPoint)
 	http.HandleFunc("/", proxy)
-	http.HandleFunc("/interval/set_endpoint", nil)
 	http.HandleFunc("/interval/set_svcaddr", nil)
 }
