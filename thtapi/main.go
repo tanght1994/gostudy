@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"thtapi/common"
-	"thtapi/db"
 	"time"
 )
 
@@ -23,6 +20,10 @@ func main() {
 	Requester = http.Client{
 		Transport: &transport,
 	}
+	registerHandleFunc()
+	if err := http.ListenAndServe("0.0.0.0:8000", nil); err != nil {
+		common.LogError(`http.ListenAndServe error, ` + err.Error())
+	}
 }
 
 func must(err error) {
@@ -32,63 +33,8 @@ func must(err error) {
 	}
 }
 
-func ccccc() {
+func registerHandleFunc() {
 	http.HandleFunc("/", proxy)
 	http.HandleFunc("/interval/set_endpoint", nil)
 	http.HandleFunc("/interval/set_svcaddr", nil)
-	http.ListenAndServe("0.0.0.0:8000", nil)
-}
-
-func proxy(w http.ResponseWriter, r *http.Request) {
-	var user, targetURL, originURL string
-	var serverAddrs []string
-	var err error
-	originURL = r.URL.Path
-
-	// url是否免验证
-	if !db.InWhitelist(originURL) {
-		// 验证登录
-		user, err = db.ParseToken(r.Header.Get("token"))
-		if err != nil {
-			w.WriteHeader(400)
-			return
-		}
-
-		// 验证权限
-		if !db.HavePermission(user, originURL) {
-			w.WriteHeader(400)
-			return
-		}
-	}
-
-	serverAddrs, targetURL, err = db.GetEndPoint(originURL)
-	if err == db.ErrNotFindTargetURL {
-		w.WriteHeader(404)
-		return
-	} else if err == db.ErrNotFindServerAddr {
-		w.WriteHeader(500)
-		return
-	}
-
-	serverAddr := serverAddrs[rand.Intn(len(serverAddrs))]
-	url := "http://" + serverAddr + targetURL
-	req, _ := http.NewRequest(r.Method, url, r.Body)
-	req.URL.RawQuery = r.URL.RawQuery
-	req.Header = r.Header.Clone()
-	req.Header.Del("Connection")
-	res, err := Requester.Do(req)
-	if err != nil {
-		w.WriteHeader(500)
-		return
-	}
-	defer res.Body.Close()
-	header := w.Header()
-	for k, v := range res.Header {
-		for _, x := range v {
-			header.Add(k, x)
-		}
-	}
-	header.Del("Connection")
-	data, _ := ioutil.ReadAll(res.Body)
-	w.Write(data)
 }

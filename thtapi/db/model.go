@@ -68,9 +68,9 @@ func (modelURLWhiteList) TableName() string {
 // modelSvcName2SvcAddr svc_name 与 svc_addr 对应关系
 type modelSvcName2SvcAddr struct {
 	BaseTime
-	SvcName string `gorm:"column:svc_name;primary_key;type:char(100)" json:"svc_name"`
-	SvcAddr string `gorm:"column:svc_addr;primary_key;type:char(100)" json:"svc_addr"`
-	Status  string `gorm:"column:status;type:char(50)" json:"status"`
+	SvcName string `gorm:"column:svc_name;primary_key;type:char(100);comment:'服务名'" json:"svc_name"`
+	SvcAddr string `gorm:"column:svc_addr;primary_key;type:char(100);comment:'服务地址,格式为:ip:port'" json:"svc_addr"`
+	Status  string `gorm:"column:status;type:char(50);comment:'on or off'" json:"status"`
 }
 
 // TableName 表名
@@ -82,23 +82,11 @@ func (modelSvcName2SvcAddr) TableName() string {
 type modelURL2EndPoint struct {
 	BaseTime
 	URL      string `gorm:"column:url;primary_key;type:char(350)" json:"url"`
-	EndPoint string `gorm:"column:end_point;primary_key;type:char(350)" json:"end_point"`
+	EndPoint string `gorm:"column:end_point;primary_key;type:char(350);comment:'servername/someurl'" json:"end_point"`
+	Status   string `gorm:"column:status;type:char(50);comment:'on or off'" json:"status"`
 }
 
 // TableName 表名
 func (modelURL2EndPoint) TableName() string {
 	return "url2end_point"
-}
-
-// modelTableModified 用于记录表的修改
-// 每次表中有数据被修改, 就将Tag+1
-type modelTableModified struct {
-	BaseTime
-	Name string `gorm:"column:name;primary_key;type:char(100)" json:"name"`
-	Tag  int64  `gorm:"column:tag;type:bigint" json:"tag"`
-}
-
-// TableName 表名
-func (modelTableModified) TableName() string {
-	return "table_modified"
 }

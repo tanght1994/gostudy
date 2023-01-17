@@ -25,21 +25,10 @@ func init() {
 		modelUserGroup{},
 		modelURLWhiteList{},
 		modelSvcName2SvcAddr{},
-		modelURL2EndPoint{},
-		modelTableModified{})
+		modelURL2EndPoint{})
 	must(err, "DB.AutoMigrate error, ")
-	initTableData()
 	common.LogCritical("数据库初始化成功")
-	updateCache()
-}
-
-func initTableData() {
-	mydb.Delete(modelTableModified{}, "1=1")
-	mydb.Create(&modelTableModified{Name: modelURL2EndPoint{}.TableName(), Tag: 1})
-	mydb.Create(&modelTableModified{Name: modelSvcName2SvcAddr{}.TableName(), Tag: 1})
-	mydb.Create(&modelTableModified{Name: modelUserGroup{}.TableName(), Tag: 1})
-	mydb.Create(&modelTableModified{Name: modelGroupURL{}.TableName(), Tag: 1})
-	mydb.Create(&modelTableModified{Name: modelURLWhiteList{}.TableName(), Tag: 1})
+	SyncAllCache()
 }
 
 func must(err error, msg string) {

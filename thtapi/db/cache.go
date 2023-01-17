@@ -23,32 +23,17 @@ var (
 	synclock sync.RWMutex
 )
 
-func updateCache() {
-	syncURL2EndPoint()
-	syncSvcName2SvcAddr()
-	syncUserGroup()
-	syncGroupURL()
-	syncURLWhiteList()
+// SyncAllCache ...
+func SyncAllCache() {
+	SyncURL2EndPoint()
+	SyncSvcName2SvcAddr()
+	SyncUserGroup()
+	SyncGroupURL()
+	SyncURLWhiteList()
 }
 
-func getTableModifiedTag(tableName string) int64 {
-	tag := []int64{}
-	mydb.Model(modelTableModified{}).Select("tag").Where("name=?", tableName).Find(&tag)
-	if len(tag) == 0 {
-		return -1
-	}
-	return tag[0]
-}
-
-func syncURL2EndPoint() {
-	tag := getTableModifiedTag(modelURL2EndPoint{}.TableName())
-	defer func() {
-		tagURL2EndPoint = tag
-	}()
-	if tag == tagURL2EndPoint || tag == -1 {
-		return
-	}
-
+// SyncURL2EndPoint ...
+func SyncURL2EndPoint() {
 	datas := []modelURL2EndPoint{}
 	mydb.Model(modelURL2EndPoint{}).Find(&datas)
 	synclock.Lock()
@@ -60,15 +45,8 @@ func syncURL2EndPoint() {
 	common.LogCritical("sync cacheURL2EndPoint ok")
 }
 
-func syncSvcName2SvcAddr() {
-	tag := getTableModifiedTag(modelSvcName2SvcAddr{}.TableName())
-	defer func() {
-		tagURL2EndPoint = tag
-	}()
-	if tag == tagURL2EndPoint || tag == -1 {
-		return
-	}
-
+// SyncSvcName2SvcAddr ...
+func SyncSvcName2SvcAddr() {
 	datas := []modelSvcName2SvcAddr{}
 	mydb.Model(modelSvcName2SvcAddr{}).Where("status=?", "on").Find(&datas)
 	synclock.Lock()
@@ -79,15 +57,8 @@ func syncSvcName2SvcAddr() {
 	common.LogCritical("sync cacheSvcName2SvcAddr ok")
 }
 
-func syncUserGroup() {
-	tag := getTableModifiedTag(modelUserGroup{}.TableName())
-	defer func() {
-		tagUserGroup = tag
-	}()
-	if tag == tagUserGroup || tag == -1 {
-		return
-	}
-
+// SyncUserGroup ...
+func SyncUserGroup() {
 	datas := []modelUserGroup{}
 	mydb.Find(&datas)
 	synclock.Lock()
@@ -98,15 +69,8 @@ func syncUserGroup() {
 	common.LogCritical("sync cacheUserGroup ok")
 }
 
-func syncGroupURL() {
-	tag := getTableModifiedTag(modelGroupURL{}.TableName())
-	defer func() {
-		tagGroupURL = tag
-	}()
-	if tag == tagGroupURL || tag == -1 {
-		return
-	}
-
+// SyncGroupURL ...
+func SyncGroupURL() {
 	datas := []modelGroupURL{}
 	mydb.Find(&datas)
 	synclock.Lock()
@@ -120,15 +84,8 @@ func syncGroupURL() {
 	common.LogCritical("sync cacheGroupURL ok")
 }
 
-func syncURLWhiteList() {
-	tag := getTableModifiedTag(modelURLWhiteList{}.TableName())
-	defer func() {
-		tagURLWhiteList = tag
-	}()
-	if tag == tagURLWhiteList || tag == -1 {
-		return
-	}
-
+// SyncURLWhiteList ...
+func SyncURLWhiteList() {
 	datas := []modelURLWhiteList{}
 	mydb.Find(&datas)
 	synclock.Lock()

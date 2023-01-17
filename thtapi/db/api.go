@@ -3,8 +3,6 @@ package db
 import (
 	"errors"
 	"strings"
-
-	"gorm.io/gorm"
 )
 
 var (
@@ -71,9 +69,4 @@ func GetEndPoint(originURL string) (serverAddr []string, targetURL string, err e
 		return
 	}
 	return
-}
-
-// tableTagInc table_modified表tag字段+1
-func tableTagInc(tableName string) {
-	mydb.Model(modelTableModified{}).Where("name=?", tableName).Update("tag", gorm.Expr("tag+?", 1))
 }
