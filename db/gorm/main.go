@@ -17,6 +17,16 @@ func (tangHongTao) TableName() string {
 	return "tht"
 }
 
+type abc struct {
+	A uint64 `gorm:"column:a;type:bigint unsigned;primary_key;auto_increment;not null" json:"a"`
+	B int    `gorm:"column:b;type:int" json:"b"`
+}
+
+func (abc) TableName() string {
+	// 指定表名, 如果不指定的话, 默认是 tang_hong_taos
+	return "abc"
+}
+
 func main() {
 	db := ConnectDB()
 	// db.Session(&gorm.Session{}) // 返回db, 只是叫session而已, 其实就是db, session是db的拷贝, 为什么要这样? 因为这样的话我们可以重新设置db的gorm.Config, 且不影响原始的db对象
@@ -27,6 +37,7 @@ func main() {
 	Insert(db)
 	Transaction(db)
 	Query(db)
+	Update(db)
 }
 
 func must(err error) {
@@ -52,6 +63,7 @@ func ConnectDB() *gorm.DB {
 func AutoMigrate(db *gorm.DB) {
 	// 删除表
 	db.Migrator().DropTable(&tangHongTao{})
+	db.Migrator().DropTable(&abc{})
 
 	// 自动创建或修改表
 	// 如果数据库中无此表, 则创建
@@ -62,7 +74,7 @@ func AutoMigrate(db *gorm.DB) {
 	//    Go中字段类型发生变化, 数据库中的类型也要跟着变化
 	//    比如说将 varchar 修改为 int  那么对于已经存在的记录aaaaa, 就会报错
 	//    *** 主键字段不能修改类型 ***
-	err := db.AutoMigrate(&tangHongTao{})
+	err := db.AutoMigrate(tangHongTao{}, abc{})
 	must(err)
 }
 
@@ -136,21 +148,21 @@ func Query(db *gorm.DB) {
 	tht = tangHongTao{}
 	// SELECT * FROM `tht` ORDER BY `tht`.`a` LIMIT 1
 	// 即使我们没有使用Limit()和Order()函数来设置 ORDER BY 和 LIMIT, 但是First会自动添加
-	db.Debug().Model(tangHongTao{}).First(&tht) // tht 一定要是zero值, 否则会影响SQL语句
+	db.Model(tangHongTao{}).First(&tht) // tht 一定要是zero值, 否则会影响SQL语句
 	fmt.Println(tht)
 
 	// 2.Last() (1.自动添加 ORDER BY 和 LIMIT 2.取值到struct)
 	tht = tangHongTao{}
 	// SELECT * FROM `tht` ORDER BY `tht`.`a` DESC LIMIT 1
 	// 即使我们没有使用Limit()和Order()函数来设置 ORDER BY 和 LIMIT, 但是First会自动添加
-	db.Debug().Model(tangHongTao{}).Last(&tht)
+	db.Model(tangHongTao{}).Last(&tht)
 	fmt.Println(tht)
 
 	// 3.Take() (1.自动添加 LIMIT 2.取值到struct)
 	tht = tangHongTao{}
 	// SELECT * FROM `tht` LIMIT 1
 	// Take 会自动添加 LIMIT 1
-	db.Debug().Model(tangHongTao{}).Take(&tht)
+	db.Model(tangHongTao{}).Take(&tht)
 	fmt.Println(tht)
 
 	// 4.Find() (1.取值到struct list 或 struct)
@@ -159,12 +171,45 @@ func Query(db *gorm.DB) {
 	// Find 不会添加任何东西
 	// Find 接受一个 struct 数组, 将结果放到数组中
 	// Find 也能接受一个单一的 struct, 那么Find就会把结果中的第一个值放到这个 struct 中, 然后close(rows)
-	db.Debug().Model(tangHongTao{}).Find(&thtList)
+	db.Model(tangHongTao{}).Find(&thtList)
 	fmt.Println(thtList)
 
 	// 5.Where() 上述所有函数前, 都可以添加 Where 进行条件过滤
 	tht = tangHongTao{}
 	// SELECT * FROM `tht` WHERE b > 'c' ORDER BY `tht`.`a` LIMIT 1
-	db.Debug().Model(tangHongTao{}).Where("b > ?", "c").First(&tht)
+	db.Model(tangHongTao{}).Where("b > ?", "c").First(&tht)
 	fmt.Println(tht)
+
+	// 6.查不到数据时的返回值
+	// First, Take, Last 如果查不到数据会设置ErrRecordNotFound
+	// Find 不会, 因为Find期望你传递struct list, 如果查不到值的话, len为0
+	tht = tangHongTao{}
+	err := db.Model(tangHongTao{}).Where("b > ?", "z").First(&tht).Error
+	if err == gorm.ErrRecordNotFound {
+		fmt.Println("没有符合条件的数据")
+	} else {
+		fmt.Println(tht)
+	}
+
+	// 7.查不到数据时Find不返回ErrRecordNotFound
+	// 通过 thtList 的长度来判断是否有数据被查到
+	thtList = []tangHongTao{}
+	db.Model(tangHongTao{}).Where("b > ?", "z").Find(&thtList)
+	fmt.Println(thtList)
+}
+
+// Update ...
+func Update(db *gorm.DB) {
+	db.Create([]abc{
+		{B: 100},
+		{B: 200},
+		{B: 300},
+		{B: 400},
+	})
+
+	// UPDATE `abc` SET `b`=888 WHERE a=2
+	db.Debug().Model(abc{}).Where("a=?", 2).Update("b", 888)
+
+	// UPDATE `abc` SET `b`=b+1 WHERE a>2
+	db.Debug().Model(abc{}).Where("a>?", 2).Update("b", gorm.Expr("b+?", 1))
 }
