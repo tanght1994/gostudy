@@ -1,0 +1,12 @@
+POST http://localhost:8000/abc/def?haha=10&hehe=20
+Content-Type:multipart/form-data;boundary=bbe891812fecc1ff7e00735dbfb25b75c65f9ad0d43843b329da8ce59a6f
+
+--bbe891812fecc1ff7e00735dbfb25b75c65f9ad0d43843b329da8ce59a6f
+Content-Disposition: form-data; name="name"
+
+tanght
+--bbe891812fecc1ff7e00735dbfb25b75c65f9ad0d43843b329da8ce59a6f
+Content-Disposition: form-data; name="age"
+
+1000
+--bbe891812fecc1ff7e00735dbfb25b75c65f9ad0d43843b329da8ce59a6f--
