@@ -23,7 +23,6 @@ type abc struct {
 }
 
 func (abc) TableName() string {
-	// 指定表名, 如果不指定的话, 默认是 tang_hong_taos
 	return "abc"
 }
 
@@ -194,8 +193,12 @@ func Query(db *gorm.DB) {
 	// 7.查不到数据时Find不返回ErrRecordNotFound
 	// 通过 thtList 的长度来判断是否有数据被查到
 	thtList = []tangHongTao{}
-	db.Model(tangHongTao{}).Where("b > ?", "z").Find(&thtList)
-	fmt.Println(thtList)
+	err = db.Model(tangHongTao{}).Where("b > ?", "z").Find(&thtList).Error
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Println(thtList)
+	}
 }
 
 // Update ...

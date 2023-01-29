@@ -10,3 +10,10 @@ Content-Disposition: form-data; name="age"
 
 1000
 --bbe891812fecc1ff7e00735dbfb25b75c65f9ad0d43843b329da8ce59a6f--
+
+
+
+###
+POST http://localhost:8000/interval/set_endpoint
+
+{"a": 1}

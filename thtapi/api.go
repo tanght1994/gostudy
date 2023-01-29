@@ -2,16 +2,16 @@ package main
 
 import (
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"thtapi/db"
 
 	"github.com/gin-gonic/gin"
 )
 
-func proxy(w http.ResponseWriter, r *http.Request) {
+func proxy(ginctx *gin.Context) {
+	w := ginctx.Writer
+	r := ginctx.Request
 	var user, targetURL, originURL string
-	var serverAddrs []string
 	var err error
 	originURL = r.URL.Path
 
@@ -31,18 +31,16 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	serverAddrs, targetURL, err = db.GetEndPoint(originURL)
+	targetURL, err = db.GetTargetURL(originURL)
 	if err == db.ErrNotFindTargetURL {
 		w.WriteHeader(404)
 		return
 	} else if err == db.ErrNotFindServerAddr {
-		w.WriteHeader(500)
+		w.WriteHeader(502)
 		return
 	}
 
-	serverAddr := serverAddrs[rand.Intn(len(serverAddrs))]
-	url := "http://" + serverAddr + targetURL
-	req, _ := http.NewRequest(r.Method, url, r.Body)
+	req, _ := http.NewRequest(r.Method, targetURL, r.Body)
 	req.URL.RawQuery = r.URL.RawQuery
 	req.Header = r.Header.Clone()
 	req.Header.Del("Connection")
@@ -64,4 +62,15 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 }
 
 func setEndPoint(ginctx *gin.Context) {
+	type Data struct {
+		URL      string `binding:"required" json:"url"`
+		EndPoint string `binding:"required" json:"endpoint"`
+		Status   string `binding:"required" json:"status"`
+	}
+	data := Data{}
+	err := ginctx.BindJSON(&data)
+	if err != nil {
+		return
+	}
+	ginctx.Data(200, "text/plain", []byte("haha hehe"))
 }

@@ -26,9 +26,12 @@ func main() {
 	Requester = http.Client{
 		Transport: &transport,
 	}
+	gin.SetMode(gin.ReleaseMode)
+	GinEngine = gin.New()
 	registerHandleFunc()
-	if err := http.ListenAndServe("0.0.0.0:8000", nil); err != nil {
-		common.LogError(`http.ListenAndServe error, ` + err.Error())
+
+	if err := GinEngine.Run("0.0.0.0:8000"); err != nil {
+		common.LogError(`GinEngine.Run error, ` + err.Error())
 	}
 }
 
@@ -40,8 +43,6 @@ func must(err error) {
 }
 
 func registerHandleFunc() {
-	GinEngine.Any("", nil)
+	GinEngine.Any("/", proxy)
 	GinEngine.POST("/interval/set_endpoint", setEndPoint)
-	http.HandleFunc("/", proxy)
-	http.HandleFunc("/interval/set_svcaddr", nil)
 }
