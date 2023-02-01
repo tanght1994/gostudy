@@ -1,8 +1,13 @@
 package db
 
 import (
+	"errors"
+	"net"
+	"strings"
 	"sync"
 	"thtapi/common"
+
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -21,6 +26,128 @@ var (
 	synclock sync.RWMutex
 )
 
+// ProxyConfig ...
+type ProxyConfig struct {
+	URLsInfo map[string]OneURLInfo
+	SvcsInfo map[string]OneSvcInfo
+}
+
+// OneURLInfo ...
+type OneURLInfo struct {
+	IPRule []struct {
+		allow bool
+		ipnet *net.IPNet
+	}
+	NoPermissionCheck bool
+	AccessGroup       []int
+	Endpoint          map[string]bool
+	Comment           string
+}
+
+// OneSvcInfo ...
+type OneSvcInfo map[string]bool
+
+func str2ProxyConfig(text string) (proxyConfig ProxyConfig, err error) {
+	// 解析配置文件
+	type AAA struct {
+		URLsInfo map[string]struct {
+			IPRule            []string        `yaml:"iprule"`
+			NoPermissionCheck bool            `yaml:"no_permission_check"`
+			AccessGroup       []int           `yaml:"access_group"`
+			Endpoint          map[string]bool `yaml:"endpoint"`
+			Comment           string          `yaml:"comment"`
+		} `yaml:"urls_info"`
+		SvcsInfo map[string]OneSvcInfo `yaml:"svcs_info"`
+	}
+	data := AAA{}
+	err = yaml.Unmarshal([]byte(text), &data)
+	if err != nil {
+		return
+	}
+	proxyConfig.SvcsInfo = make(map[string]OneSvcInfo)
+	proxyConfig.URLsInfo = make(map[string]OneURLInfo)
+
+	// 整理svcs_info
+	for k, v := range data.SvcsInfo {
+		for k1 := range v {
+			// 检查是否符合 servername + url 这种格式
+			if len(k1) < 2 {
+				err = errors.New("1")
+				return
+			}
+			if idx := strings.Index(k1, "/"); (idx == -1) || (idx == 0) {
+				err = errors.New("1")
+				return
+			}
+		}
+		proxyConfig.SvcsInfo[k] = v
+	}
+
+	// 整理urls_info
+
+	for k, v := range data.URLsInfo {
+		one := OneURLInfo{}
+
+		// 整理IPRule
+		IPRule := []struct {
+			allow bool
+			ipnet *net.IPNet
+		}{}
+		for _, v := range v.IPRule {
+			if len(v) == 0 {
+				err = errors.New("1")
+				return
+			}
+			if !(v[0] == 'a' || v[0] == 'd') {
+				err = errors.New("2")
+				return
+			}
+			allow := v[0] == 'a'
+			ip := string(v[1:])
+			_, ipnet, e := net.ParseCIDR(ip)
+			if e != nil {
+				err = e
+				return
+			}
+			IPRule = append(IPRule, struct {
+				allow bool
+				ipnet *net.IPNet
+			}{allow: allow, ipnet: ipnet})
+		}
+
+		// 整理AccessGroup
+		AccessGroup := []int{}
+		existence := func(x int) bool {
+			for _, v := range one.AccessGroup {
+				if x == v {
+					return true
+				}
+			}
+			return false
+		}
+		for _, v := range v.AccessGroup {
+			if !existence(v) {
+				AccessGroup = append(AccessGroup, v)
+			}
+		}
+
+		// 整理Endpoint
+		Endpoint := []struct {
+			URL    string
+			Online bool
+		}{}
+		for _, v := range v.Endpoint {
+			Endpoint = append(Endpoint, struct {
+				URL    string
+				Online bool
+			}{URL: "", Online: true})
+		}
+
+		allURLInfo[k] = one
+	}
+	return
+}
+
 // SyncAllCache ...
 func SyncAllCache() {
 	SyncURL2EndPoint()
@@ -33,8 +160,7 @@ func SyncAllCache() {
 // SyncURL2EndPoint ...
 func SyncURL2EndPoint() {
 	datas := []modelURL2EndPoint{}
-	err := mydb.Model(modelURL2EndPoint{}).Find(&datas).Error
-	if err != nil {
+	if err := mydb.Model(modelURL2EndPoint{}).Find(&datas).Error; err != nil {
 		common.LogError("SyncURL2EndPoint error, " + err.Error())
 		return
 	}
@@ -55,8 +181,7 @@ func SyncURL2EndPoint() {
 // SyncSvcName2SvcAddr ...
 func SyncSvcName2SvcAddr() {
 	datas := []modelSvcName2SvcAddr{}
-	err := mydb.Model(modelSvcName2SvcAddr{}).Find(&datas).Error
-	if err != nil {
+	if err := mydb.Model(modelSvcName2SvcAddr{}).Find(&datas).Error; err != nil {
 		common.LogError("SyncSvcName2SvcAddr error, " + err.Error())
 		return
 	}
@@ -77,8 +202,7 @@ func SyncSvcName2SvcAddr() {
 // SyncUserGroup ...
 func SyncUserGroup() {
 	datas := []modelUserGroup{}
-	err := mydb.Find(&datas).Error
-	if err != nil {
+	if err := mydb.Find(&datas).Error; err != nil {
 		common.LogError("SyncUserGroup error, " + err.Error())
 		return
 	}
@@ -93,8 +217,7 @@ func SyncUserGroup() {
 // SyncGroupURL ...
 func SyncGroupURL() {
 	datas := []modelGroupURL{}
-	err := mydb.Find(&datas).Error
-	if err != nil {
+	if err := mydb.Find(&datas).Error; err != nil {
 		common.LogError("SyncGroupURL error, " + err.Error())
 		return
 	}
@@ -112,8 +235,7 @@ func SyncGroupURL() {
 // SyncURLWhiteList ...
 func SyncURLWhiteList() {
 	datas := []modelURLWhiteList{}
-	err := mydb.Find(&datas).Error
-	if err != nil {
+	if err := mydb.Find(&datas).Error; err != nil {
 		common.LogError("SyncURLWhiteList error, " + err.Error())
 		return
 	}

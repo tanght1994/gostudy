@@ -97,18 +97,36 @@ func GetTargetURL(originURL string) (url string, err error) {
 	return serverAddr + targetURL, nil
 }
 
-func setEndpoint(url, endpoint string, status bool) error {
+// SetEndpoint ...
+func SetEndpoint(url, endpoint string, status bool) error {
 	online := "off"
 	if status {
 		online = "on"
 	}
-	mydb.Model(modelURL2EndPoint{}).Save(modelURL2EndPoint{
+	err := mydb.Model(modelURL2EndPoint{}).Save(modelURL2EndPoint{
 		URL:      url,
 		EndPoint: endpoint,
 		Status:   online,
-	})
-	err := mydb.Error
-	mydb.Error = nil
-	SyncURL2EndPoint()
+	}).Error
+	if err == nil {
+		SyncURL2EndPoint()
+	}
+	return err
+}
+
+// GetEndpoint ...
+func GetEndpoint(url, endpoint string, status bool) error {
+	online := "off"
+	if status {
+		online = "on"
+	}
+	err := mydb.Model(modelURL2EndPoint{}).Save(modelURL2EndPoint{
+		URL:      url,
+		EndPoint: endpoint,
+		Status:   online,
+	}).Error
+	if err == nil {
+		SyncURL2EndPoint()
+	}
 	return err
 }
