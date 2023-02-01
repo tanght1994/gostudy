@@ -1,20 +1,24 @@
-url2endpoint:
+urls_info:
   a/b/c/d/e:
-    iprule: ['a*.*.*.*', 'd192.168.7.45']
+    iprule: ['a10.251.0.0/16', 'd192.168.7.45/32']
     no_permission_check: false
-    access_group: ['group1', 'group2', 'group3']
-    endpoint: [
-      {url: 'server1/a/b', online: true},
-      {url: 'server2/a/b', online: true},
-    ]
+    access_group: [1, 2, 3]
+    endpoint:
+      'server1/a/b': on
+      'server2/a/b': on
     comment: xxxxxxxxx
   a/a/a/a/a:
-    iprule: ['a*.*.*.*', 'd192.168.7.45']
+    iprule: ['a10.251.0.0/16', 'd192.168.7.45/32']
     no_permission_check: false
-    access_group: ['group1', 'group2', 'group3']
-    endpoint: [
-      {url: 'server1/a/b', online: true},
-      {url: 'server2/a/b', online: true},
-    ]
+    access_group: [4, 5]
+    endpoint:
+      'server1/a/b': on
+      'server2/a/b': on
     comment: xxxxxxxxx
-
+svcs_info:
+  'server1':
+    'http://192.168.7.45:8000': on
+    'http://192.168.7.45:8001': off
+  'server2':
+    'http://192.168.7.45:8002': on
+    'http://192.168.7.45:8003': on

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"thtapi/common"
@@ -19,15 +18,6 @@ var (
 )
 
 func main() {
-	ip, ipnet, e := net.ParseCIDR("192.168.0.0/16")
-	fmt.Println(ip)
-	fmt.Println(ipnet)
-	fmt.Println(e)
-	fmt.Println(ipnet.Contains(net.ParseIP("192.168.7.45")))
-	fmt.Println(ipnet.Contains(net.ParseIP("192.168.8.45")))
-	fmt.Println(ipnet.Contains(net.ParseIP("192.169.7.45")))
-	fmt.Println(ipnet.Contains(net.ParseIP("192.168.7.47")))
-	return
 	common.SetLogLevel(common.LevelDebug)
 	common.LogCritical("thtapi start")
 	transport := http.Transport{

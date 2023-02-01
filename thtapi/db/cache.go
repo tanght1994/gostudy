@@ -2,7 +2,9 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"thtapi/common"
@@ -26,84 +28,77 @@ var (
 	synclock sync.RWMutex
 )
 
-// ProxyConfig ...
-type ProxyConfig struct {
-	URLsInfo map[string]OneURLInfo
-	SvcsInfo map[string]OneSvcInfo
+// YamlURLProxy ...
+type YamlURLProxy struct {
+	URLsInfo map[string]struct {
+		IPRule            []string        `yaml:"iprule"`
+		NoPermissionCheck bool            `yaml:"no_permission_check"`
+		AccessGroup       []int           `yaml:"access_group"`
+		Endpoint          map[string]bool `yaml:"endpoint"`
+		Comment           string          `yaml:"comment"`
+	} `yaml:"urls_info"`
+	SvcsInfo map[string]map[string]bool `yaml:"svcs_info"`
 }
 
-// OneURLInfo ...
-type OneURLInfo struct {
+// URLProxy ...
+type URLProxy map[string]OneURLProxy
+
+// OneURLProxy ...
+type OneURLProxy struct {
 	IPRule []struct {
 		allow bool
 		ipnet *net.IPNet
 	}
 	NoPermissionCheck bool
 	AccessGroup       []int
-	Endpoint          map[string]bool
-	Comment           string
+	Endpoint          []string
 }
 
-// OneSvcInfo ...
-type OneSvcInfo map[string]bool
-
-func str2ProxyConfig(text string) (proxyConfig ProxyConfig, err error) {
+func str2ProxyConfig(text string) (urlProxy URLProxy, err error) {
 	// 解析配置文件
-	type AAA struct {
-		URLsInfo map[string]struct {
-			IPRule            []string        `yaml:"iprule"`
-			NoPermissionCheck bool            `yaml:"no_permission_check"`
-			AccessGroup       []int           `yaml:"access_group"`
-			Endpoint          map[string]bool `yaml:"endpoint"`
-			Comment           string          `yaml:"comment"`
-		} `yaml:"urls_info"`
-		SvcsInfo map[string]OneSvcInfo `yaml:"svcs_info"`
-	}
-	data := AAA{}
+	data := YamlURLProxy{}
 	err = yaml.Unmarshal([]byte(text), &data)
 	if err != nil {
 		return
 	}
-	proxyConfig.SvcsInfo = make(map[string]OneSvcInfo)
-	proxyConfig.URLsInfo = make(map[string]OneURLInfo)
+	urlProxy = make(URLProxy)
 
-	// 整理svcs_info
-	for k, v := range data.SvcsInfo {
-		for k1 := range v {
-			// 检查是否符合 servername + url 这种格式
-			if len(k1) < 2 {
+	// 整理SvcsInfo
+	onlineSvcsInfo := make(map[string]map[string]struct{})
+	reg := regexp.MustCompile(`http[s]?://.+?:\d+`)
+	for svcname, addrs := range data.SvcsInfo {
+		onlineSvcsInfo[svcname] = make(map[string]struct{})
+		for addr, online := range addrs {
+			// 检查 addr 是否符合 http[s]://xxx.xxx.xxx.xxx:xxx 这种格式
+			if !online {
+				continue
+			}
+			if !reg.Match([]byte(addr)) {
 				err = errors.New("1")
 				return
 			}
-			if idx := strings.Index(k1, "/"); (idx == -1) || (idx == 0) {
-				err = errors.New("1")
-				return
-			}
+			onlineSvcsInfo[svcname][addr] = struct{}{}
 		}
-		proxyConfig.SvcsInfo[k] = v
 	}
 
-	// 整理urls_info
-
+	// 整理URLsInfo
 	for k, v := range data.URLsInfo {
-		one := OneURLInfo{}
-
 		// 整理IPRule
 		IPRule := []struct {
 			allow bool
 			ipnet *net.IPNet
 		}{}
-		for _, v := range v.IPRule {
-			if len(v) == 0 {
+		for _, v1 := range v.IPRule {
+			if len(v1) == 0 {
 				err = errors.New("1")
 				return
 			}
-			if !(v[0] == 'a' || v[0] == 'd') {
+			if !(v1[0] == 'a' || v1[0] == 'd') {
 				err = errors.New("2")
 				return
 			}
-			allow := v[0] == 'a'
-			ip := string(v[1:])
+			allow := v1[0] == 'a'
+			ip := string(v1[1:])
 			_, ipnet, e := net.ParseCIDR(ip)
 			if e != nil {
 				err = e
@@ -118,38 +113,86 @@ func str2ProxyConfig(text string) (proxyConfig ProxyConfig, err error) {
 		// 整理AccessGroup
 		AccessGroup := []int{}
 		existence := func(x int) bool {
-			for _, v := range one.AccessGroup {
-				if x == v {
+			for _, v1 := range AccessGroup {
+				if x == v1 {
 					return true
 				}
 			}
 			return false
 		}
-		for _, v := range v.AccessGroup {
-			if !existence(v) {
-				AccessGroup = append(AccessGroup, v)
+		for _, v1 := range v.AccessGroup {
+			if !existence(v1) {
+				AccessGroup = append(AccessGroup, v1)
 			}
 		}
 
-		// 整理Endpoint
-		Endpoint := []struct {
-			URL    string
-			Online bool
-		}{}
-		for _, v := range v.Endpoint {
-			Endpoint = append(Endpoint, struct {
-				URL    string
-				Online bool
-			}{URL: "", Online: true})
+		// 检查Endpoint
+		Endpoint := make([]string, 0)
+		for endpoint, online := range v.Endpoint {
+			if !online {
+				continue
+			}
+			// 检查 endpoint 的格式为 svcname + url
+			if len(endpoint) < 2 {
+				err = errors.New("1")
+				return
+			}
+			idx := strings.Index(endpoint, "/")
+			if idx == -1 || idx == 0 {
+				err = errors.New("2")
+				return
+			}
+
+			// 将endpoint中的svcname替换
+			svcname := endpoint[:idx]
+			url := endpoint[idx:]
+			for addr, _ := range onlineSvcsInfo[svcname] {
+				Endpoint = append(Endpoint, addr+url)
+			}
 		}
 
-		allURLInfo[k] = one
+		urlProxy[k] = OneURLProxy{
+			IPRule:            IPRule,
+			NoPermissionCheck: v.NoPermissionCheck,
+			AccessGroup:       AccessGroup,
+			Endpoint:          Endpoint,
+		}
 	}
 	return
 }
 
 // SyncAllCache ...
 func SyncAllCache() {
+	text := `
+urls_info:
+  a/b/c/d/e:
+    iprule: ['a10.251.0.0/16', 'd192.168.7.45/32']
+    no_permission_check: false
+    access_group: [1, 2, 3]
+    endpoint:
+      'server1/a/b': on
+      'server2/a/b': on
+    comment: xxxxxxxxx
+  a/a/a/a/a:
+    iprule: ['a10.251.0.0/16', 'd192.168.7.45/32']
+    no_permission_check: false
+    access_group: [4, 5]
+    endpoint:
+      'server1/a/b': on
+      'server2/a/b': on
+    comment: xxxxxxxxx
+svcs_info:
+  'server1':
+    'http://192.168.7.45:8000': on
+    'http://192.168.7.45:8001': off
+  'server2':
+    'http://192.168.7.45:8002': on
+    'http://192.168.7.45:8003': on
+`
+	a, e := str2ProxyConfig(text)
+	fmt.Println(a)
+	fmt.Println(e)
+	return
 	SyncURL2EndPoint()
 	SyncSvcName2SvcAddr()
 	SyncUserGroup()
