@@ -21,14 +21,11 @@ func init() {
 	err = mydb.AutoMigrate(
 		modelUserPassword{},
 		modelUserInfo{},
-		modelGroupURL{},
 		modelUserGroup{},
-		modelURLWhiteList{},
-		modelSvcName2SvcAddr{},
-		modelURL2EndPoint{})
+		modelProxyConfig{},
+		modelGroupInfo{})
 	must(err, "DB.AutoMigrate error, ")
 	common.LogCritical("数据库初始化成功")
-	SyncAllCache()
 }
 
 func must(err error, msg string) {

@@ -8,9 +8,9 @@ type BaseTime struct {
 
 // modelUserPassword 用户密码
 type modelUserPassword struct {
-	BaseTime
 	Username string `gorm:"column:username;primary_key;type:char(100)" json:"username"`
 	Password string `gorm:"column:password;type:varchar(255)" json:"password"`
+	BaseTime
 }
 
 // TableName 表名
@@ -20,9 +20,9 @@ func (modelUserPassword) TableName() string {
 
 // modelUserInfo 用户信息
 type modelUserInfo struct {
-	BaseTime
 	Username string `gorm:"column:username;primary_key;type:char(255)" json:"username"`
 	Nickname string `gorm:"column:nickname;type:varchar(255)" json:"nickname"`
+	BaseTime
 }
 
 // TableName 表名
@@ -30,23 +30,11 @@ func (modelUserInfo) TableName() string {
 	return "user_info"
 }
 
-// modelGroupURL 组可访问的URL
-type modelGroupURL struct {
-	BaseTime
-	GroupName string `gorm:"column:group_name;primary_key;type:char(100)" json:"group_name"`
-	URL       string `gorm:"column:url;primary_key;type:char(500)" json:"url"`
-}
-
-// TableName 表名
-func (modelGroupURL) TableName() string {
-	return "group_url"
-}
-
 // modelUserGroup 用户拥有的组
 type modelUserGroup struct {
+	Username string `gorm:"column:username;primary_key;type:char(100)" json:"username"`
+	GroupID  uint32 `gorm:"column:group_id;primary_key;type:int unsigned" json:"group_id"`
 	BaseTime
-	Username  string `gorm:"column:username;primary_key;type:char(100)" json:"username"`
-	GroupName string `gorm:"column:group_name;primary_key;type:char(100)" json:"group_name"`
 }
 
 // TableName 表名
@@ -54,39 +42,21 @@ func (modelUserGroup) TableName() string {
 	return "user_group"
 }
 
-// modelURLWhiteList 免权限URL
-type modelURLWhiteList struct {
+// modelGroupInfo 组ID与组名对应关系
+type modelGroupInfo struct {
+	GroupID   uint32 `gorm:"column:group_id;primary_key;type:int unsigned;auto_increment;comment:'组ID'" json:"group_id"`
+	GroupName string `gorm:"column:group_name;type:char(100);comment:'组名'" json:"group_name"`
 	BaseTime
-	URL string `gorm:"column:url;primary_key;type:char(500)" json:"url"`
+}
+
+// modelProxyConfig 代理规则配置
+type modelProxyConfig struct {
+	ID   uint64 `gorm:"column:id;primary_key;type:bigint unsigned;auto_increment;comment:'充当主键,没其它用处'" json:"id"`
+	Text string `gorm:"column:text;type:MEDIUMTEXT;comment:'配置文件'" json:"text"`
+	BaseTime
 }
 
 // TableName 表名
-func (modelURLWhiteList) TableName() string {
-	return "url_whitelist"
-}
-
-// modelSvcName2SvcAddr svc_name 与 svc_addr 对应关系
-type modelSvcName2SvcAddr struct {
-	BaseTime
-	SvcName string `gorm:"column:svc_name;primary_key;type:char(100);comment:'服务名'" json:"svc_name"`
-	SvcAddr string `gorm:"column:svc_addr;primary_key;type:char(100);comment:'服务地址,格式为:ip:port'" json:"svc_addr"`
-	Status  string `gorm:"column:status;type:char(50);comment:'on or off'" json:"status"`
-}
-
-// TableName 表名
-func (modelSvcName2SvcAddr) TableName() string {
-	return "svc_name2svc_addr"
-}
-
-// modelURL2EndPoint URL对应的EndPoint, EndPoint就是SvcName+URL, 如server1/a/b/c
-type modelURL2EndPoint struct {
-	BaseTime
-	URL      string `gorm:"column:url;primary_key;type:char(350)" json:"url"`
-	EndPoint string `gorm:"column:end_point;primary_key;type:char(350);comment:'servername/someurl'" json:"end_point"`
-	Status   string `gorm:"column:status;type:char(50);comment:'on or off'" json:"status"`
-}
-
-// TableName 表名
-func (modelURL2EndPoint) TableName() string {
-	return "url2end_point"
+func (modelProxyConfig) TableName() string {
+	return "proxy_config"
 }

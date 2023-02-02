@@ -2,7 +2,7 @@ package db
 
 import (
 	"errors"
-	"strings"
+	"math/rand"
 )
 
 var (
@@ -16,14 +16,6 @@ var (
 	ErrNotFindEndpoint = errors.New("ErrNotFindEndpoint")
 )
 
-// InWhitelist 查询url是否在白名单中
-func InWhitelist(url string) bool {
-	synclock.RLock()
-	defer synclock.RUnlock()
-	_, ok := cacheURLWhiteList[url]
-	return ok
-}
-
 // ParseToken 解析token
 func ParseToken(token string) (username string, err error) {
 	synclock.RLock()
@@ -31,102 +23,25 @@ func ParseToken(token string) (username string, err error) {
 	return
 }
 
-// HavePermission 验证username是否有权限
-func HavePermission(username, url string) bool {
+// GetURLProxy ...
+func GetURLProxy(originURL string) (endpoint string, accessGroup []uint32, noPermissionCheck bool, err error) {
 	synclock.RLock()
 	defer synclock.RUnlock()
-	groups, ok := cacheUserGroup[username]
-	if !ok {
-		return false
-	}
-	for _, group := range groups {
-		if permission, ok1 := cacheGroupURL[group]; ok1 {
-			if _, ok2 := permission[url]; ok2 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// GetTargetURL ...
-func GetTargetURL(originURL string) (url string, err error) {
-	synclock.RLock()
-	defer synclock.RUnlock()
-	serverName := ""
-	endpoints, ok := cacheURL2OnlineEndPoint[originURL]
+	oneURLProxy, ok := cacheProxyConfig[originURL]
 	if !ok {
 		err = ErrNotFindEndpoint
 		return
 	}
-	endpoint := ""
-	for k := range endpoints {
-		// for map是乱序的
-		endpoint = k
-		break
-	}
-	if endpoint == "" {
+	if len(oneURLProxy.Endpoint) == 0 {
 		err = ErrNotFindEndpoint
-		return
 	}
-	idx := strings.IndexByte(endpoint, '/')
-	if idx == -1 {
-		err = ErrNoSlashInEndpoint
-		return
-	}
-
-	serverName = endpoint[0:idx]
-	targetURL := endpoint[idx:]
-
-	serverAddrs, ok := cacheSvcName2OnlineSvcAddr[serverName]
-	if !ok {
-		err = ErrNotFindServerAddr
-		return
-	}
-	serverAddr := ""
-	for k := range serverAddrs {
-		// for map是乱序的
-		serverAddr = k
-		break
-	}
-	if serverAddr == "" {
-		err = ErrNotFindServerAddr
-		return
-	}
-
-	return serverAddr + targetURL, nil
+	endpoint = oneURLProxy.Endpoint[rand.Intn(len(oneURLProxy.Endpoint))]
+	accessGroup = oneURLProxy.AccessGroup
+	noPermissionCheck = oneURLProxy.NoPermissionCheck
+	return
 }
 
-// SetEndpoint ...
-func SetEndpoint(url, endpoint string, status bool) error {
-	online := "off"
-	if status {
-		online = "on"
-	}
-	err := mydb.Model(modelURL2EndPoint{}).Save(modelURL2EndPoint{
-		URL:      url,
-		EndPoint: endpoint,
-		Status:   online,
-	}).Error
-	if err == nil {
-		SyncURL2EndPoint()
-	}
-	return err
-}
-
-// GetEndpoint ...
-func GetEndpoint(url, endpoint string, status bool) error {
-	online := "off"
-	if status {
-		online = "on"
-	}
-	err := mydb.Model(modelURL2EndPoint{}).Save(modelURL2EndPoint{
-		URL:      url,
-		EndPoint: endpoint,
-		Status:   online,
-	}).Error
-	if err == nil {
-		SyncURL2EndPoint()
-	}
-	return err
+// GetUserGroups 获取username的Group
+func GetUserGroups(username string) []uint32 {
+	return cacheUserGroup[username]
 }

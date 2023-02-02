@@ -11,36 +11,37 @@ import (
 func proxy(ginctx *gin.Context) {
 	w := ginctx.Writer
 	r := ginctx.Request
-	var user, targetURL, originURL string
+	var user string
 	var err error
-	originURL = r.URL.Path
+
+	endpoint, accessGroup, noPermissionCheck, err := db.GetURLProxy(r.URL.Path)
 
 	// url是否免验证
-	if !db.InWhitelist(originURL) {
+	if !noPermissionCheck {
 		// 验证登录
 		user, err = db.ParseToken(r.Header.Get("token"))
 		if err != nil {
-			w.WriteHeader(400)
+			w.WriteHeader(403)
 			return
 		}
 
 		// 验证权限
-		if !db.HavePermission(user, originURL) {
-			w.WriteHeader(400)
+		havePermission := false
+		groups := db.GetUserGroups(user)
+		for _, v1 := range groups {
+			for _, v2 := range accessGroup {
+				if v1 == v2 {
+					havePermission = true
+				}
+			}
+		}
+		if !havePermission {
+			w.WriteHeader(403)
 			return
 		}
 	}
 
-	targetURL, err = db.GetTargetURL(originURL)
-	if err == db.ErrNotFindTargetURL {
-		w.WriteHeader(404)
-		return
-	} else if err == db.ErrNotFindServerAddr {
-		w.WriteHeader(502)
-		return
-	}
-
-	req, _ := http.NewRequest(r.Method, targetURL, r.Body)
+	req, _ := http.NewRequest(r.Method, endpoint, r.Body)
 	req.URL.RawQuery = r.URL.RawQuery
 	req.Header = r.Header.Clone()
 	req.Header.Del("Connection")
