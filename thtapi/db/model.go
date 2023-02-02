@@ -2,8 +2,8 @@ package db
 
 // BaseTime 创建时间, 修改时间
 type BaseTime struct {
-	CreatedAt int64 `gorm:"column:created_at;type:bigint;index" json:"created_at"`
-	UpdatedAt int64 `gorm:"column:updated_at;type:bigint;index" json:"updated_at"`
+	CreatedAt int64 `gorm:"column:created_at;type:timestamp;index;" json:"created_at"`
+	UpdatedAt int64 `gorm:"column:updated_at;type:timestamp;index;" json:"updated_at"`
 }
 
 // modelUserPassword 用户密码
@@ -44,9 +44,14 @@ func (modelUserGroup) TableName() string {
 
 // modelGroupInfo 组ID与组名对应关系
 type modelGroupInfo struct {
-	GroupID   uint32 `gorm:"column:group_id;primary_key;type:int unsigned;auto_increment;comment:'组ID'" json:"group_id"`
-	GroupName string `gorm:"column:group_name;type:char(100);comment:'组名'" json:"group_name"`
+	GroupID   uint32 `gorm:"column:group_id;primary_key;type:int;auto_increment;comment:'组ID'" json:"group_id"`
+	GroupName string `gorm:"column:group_name;type:char(100);unique;comment:'组名'" json:"group_name"`
 	BaseTime
+}
+
+// TableName 表名
+func (modelGroupInfo) TableName() string {
+	return "group_info"
 }
 
 // modelProxyConfig 代理规则配置
