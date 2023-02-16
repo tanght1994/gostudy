@@ -1,0 +1,4 @@
+name: etcd01
+data-dir: /data/etcd/data
+listen-peer-urls: http://0.0.0.0:2380
+listen-client-urls: http://0.0.0.0:2379
