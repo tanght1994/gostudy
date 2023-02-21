@@ -96,25 +96,3 @@ func main() {
 		}
 	}
 }
-
-// func findMedianSortedArrays(nums1 []int, nums2 []int) float64 {
-// 	l := len(nums1) + len(nums2)
-// 	one := l%2 == 1
-// 	drop := (l - 1) / 2
-// 	i1, i2 := -1, -1
-// 	for {
-// 		a := (drop + i1 + i2 + 2) / 2
-// 		if i1 == len(nums1)-1 {
-// 			// nums1没有了
-// 			nums2[drop-len(nums1)-i2-1]
-// 		} else if i2 == len(nums2)-1 {
-// 			// nums2没有了
-// 		} else {
-// 			//
-// 		}
-// 		if nums1[i1+a] < nums2[i2+a] {
-// 			i2 += a
-// 		}
-// 	}
-// 	return 0
-// }
