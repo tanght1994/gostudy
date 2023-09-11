@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option go_package = ".;pbs2";
+
+service S2 {
+    rpc ServerStream(ServerStreamReq) returns (stream ServerStreamRes) {}
+    rpc ClientStream(stream ClientStreamReq) returns (ClientStreamRes) {}
+    rpc TwoWayStream(stream TwoWayStreamReq) returns (stream TwoWayStreamRes) {}
+}
+
+message ServerStreamReq {
+    string msg = 1;
+}
+
+message ServerStreamRes {
+    string msg = 1;
+}
+
+message ClientStreamReq {
+    string msg = 1;
+}
+  
+message ClientStreamRes {
+    string msg = 1;
+}
+
+message TwoWayStreamReq {
+    string msg = 1;
+}
+
+message TwoWayStreamRes {
+    string msg = 1;
+}

@@ -1,0 +1,3 @@
+POST http://localhost:13999/tanght
+
+{"name": "tanght", "age": 18}

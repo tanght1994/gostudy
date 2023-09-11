@@ -1,34 +1,50 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
-	"tanght/pbhello"
+	"tanght/proto/pbs1"
+	"tanght/proto/pbs2"
+	"tanght/server1"
+	"tanght/server2"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
+	// var stdout, stderr bytes.Buffer
+	// cmd := exec.Command(`C:\Users\tanght\Desktop\tmp\test\go_main\tanght.exe`)
+	// cmd.Stdout = &stdout
+	// cmd.Stderr = &stderr
+	// cmd.Start()
+
+	// for i := 0; i < 10; i++ {
+	// 	fmt.Println("+++++++++++")
+	// 	fmt.Println(stdout.String())
+	// 	fmt.Println("-----------")
+	// 	fmt.Println(stderr.String())
+	// 	fmt.Println("===========")
+	// 	time.Sleep(time.Second)
+	// }
+
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Process.Signal(syscall.SIGKILL) %v\n", cmd.Process.Signal(syscall.SIGKILL))
+	// fmt.Printf("cmd.Wait(), %v", cmd.Wait())
+	// return
 	lis, err := net.Listen("tcp", ":8000")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	s := grpc.NewServer()
-	pbhello.RegisterHelloWorldServer(s, helloWorldServer{})
+	pbs1.RegisterS1Server(s, server1.S1{})
+	pbs2.RegisterS2Server(s, server2.S2{})
 	s.Serve(lis)
-}
-
-type helloWorldServer struct {
-	pbhello.UnimplementedHelloWorldServer
-}
-
-func (helloWorldServer) Hello(ctx context.Context, req *pbhello.HelloReq) (*pbhello.HelloRes, error) {
-	fmt.Println("in Hello")
-	return &pbhello.HelloRes{Msg: fmt.Sprint("Hello ", req.Name)}, nil
-}
-func (helloWorldServer) Hi(ctx context.Context, req *pbhello.HiReq) (*pbhello.HiRes, error) {
-	fmt.Println("in Hi")
-	return &pbhello.HiRes{Msg: fmt.Sprint("Hi ", req.Name, " your age is ", req.Age)}, nil
 }

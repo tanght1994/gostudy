@@ -69,4 +69,5 @@ func handle(cn net.Conn) {
 	if err != nil {
 		fmt.Printf("Write error: %v\n", err)
 	}
+	fmt.Println(send)
 }

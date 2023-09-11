@@ -111,7 +111,7 @@ func create_db(size int) *sql.DB {
 	// interpolateParams=True 允许在sql中使用 ? 进行插值  sql驱动会处理插值
 	// multiStatements=True 允许一次Exec中有多条sql语句, 多个语句用;分割
 	// 最好不要用multiStatements, 因为这会增加SQL注入的风险
-	db, err := sql.Open("mysql", `root:123456@tcp(www.tanght.xyz:3306)/haha?interpolateParams=True&multiStatements=True`)
+	db, err := sql.Open("mysql", `root:123456@tcp(www.tanght.net:3306)/test?interpolateParams=True&multiStatements=True`)
 	must(err)
 
 	// 设置连接池参数

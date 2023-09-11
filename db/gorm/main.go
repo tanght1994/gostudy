@@ -26,17 +26,42 @@ func (abc) TableName() string {
 	return "abc"
 }
 
+// GORM默认值的处理
+// 如果你INSERT的时候没有给某个字段赋值, 那么GORM会认为你给这个字段赋了golang的零值.(!!!GORM无法区分你给这个字段赋值了零值还是没赋值(指针除外))
+// 对于零值GORM会查看这个字段tag中是否有default. 如果有default, GORM会把default放如INSERT语句中. 如果没有default, GORM会把零值放如INSERT语句中.
+// 也就是说, 如果1张表有a b c 三个字段, 你无法"INSET INTO xxx (b) VALUES (123)", GORM会帮你补全其它字段"INSET INTO xxx (a, b, c) VALUES (零值,123,零值)"
+//
+// 首先理解三个概念: golang的零值 GORM的默认值 数据库的默认值
+//  1. 在GORM的表struct中设置了某字段的默认值(default:18), GORM则会认为此值就是数据库中此字段的默认值. 重点来了,
+//     如果你的数据库中这个字段的默认值与struct中的默认值不一致, 那么当你insert数据且并没有给这个字段赋值(或者给这
+//     个字段赋了零值)时, GORM会使用struct中设置的默认值放到insert语句中. 所以最终的结果是数据库中的值是
+type def struct {
+	D uint64 `gorm:"column:d;type:bigint unsigned;primary_key;auto_increment;not null" json:"d"`
+	// 如果这个字段被设置为零值, 则GORM将default传给数据库, 所以如果数据库的default与这里设置的default不一致, 以这里的为准
+	E int `gorm:"column:e;type:int;default:18" json:"e"`
+	// default:(-) 告诉GORM使用数据库设置的默认值, 不要使用golang的零值
+	F *int `gorm:"column:f;type:int;default:20" json:"f"`
+	// default:(-) 告诉GORM使用数据库设置的默认值, 不要使用golang的零值
+	G int `gorm:"column:g;type:int;default:(-)" json:"g"`
+}
+
+func (def) TableName() string {
+	return "def"
+}
+
 func main() {
 	db := ConnectDB()
 	// db.Session(&gorm.Session{}) // 返回db, 只是叫session而已, 其实就是db, session是db的拷贝, 为什么要这样? 因为这样的话我们可以重新设置db的gorm.Config, 且不影响原始的db对象
 	// db.Table("your_table_name") // 返回db, 顺便将 db.Statement.Table 设置为你想操作的表名
 	// db.Model(tangHongTao{})     // 返回db, 顺便将 db.Statement.Table 设置为你想操作的表名, Model()会从结构体中提取表名
 	// db.Begin(&sql.TxOptions{})  // 返回db, 只是叫tx而已, 顺便将 db.Statement.ConnPool 设置为事务的连接, 然后使用这个tx进行增删改查, 完事之后记得commit
-	AutoMigrate(db)
-	Insert(db)
-	Transaction(db)
-	Query(db)
-	Update(db)
+	// AutoMigrate(db)
+
+	db.Create(&def{E: 0})
+	// Insert(db)
+	// Transaction(db)
+	// Query(db)
+	// Update(db)
 }
 
 func must(err error) {
@@ -47,7 +72,7 @@ func must(err error) {
 
 // ConnectDB 连接数据库
 func ConnectDB() *gorm.DB {
-	dsn := "root:123456@tcp(www.tanght.xyz:3306)/test?charset=utf8mb4&parseTime=true&loc=Local"
+	dsn := "root:123456@tcp(www.tanght.net:3306)/test?charset=utf8mb4&parseTime=true&loc=Local"
 	cfg := gorm.Config{}
 	// cfg.CreateBatchSize = 100          // 当insert一组数据的时候(1000个), 每次插入100个, 插入10次
 	// cfg.PrepareStmt = true             // 每次遇到新的SQL语句, 就将他编译成预编译语句, 以后使用预编译语句
