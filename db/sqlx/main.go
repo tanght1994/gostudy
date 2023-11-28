@@ -27,7 +27,7 @@ func main() {
 }
 
 func create_db(size int) *sqlx.DB {
-	dsn := "root:123456@tcp(www.tanght.xyz:3306)/haha?interpolateParams=True&multiStatements=True"
+	dsn := "root:123456@tcp(www.tanght.net:3306)/test?interpolateParams=True&multiStatements=True"
 	db, err := sqlx.Open("mysql", dsn)
 	must(err)
 	db.SetMaxOpenConns(size)

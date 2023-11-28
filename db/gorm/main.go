@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -49,19 +50,28 @@ func (def) TableName() string {
 	return "def"
 }
 
+// GORM中MYSQL的datetime类型
+type testDateTime struct {
+	A uint64    `gorm:"column:a;type:bigint unsigned;primary_key;auto_increment;not null" json:"a"`
+	B time.Time `gorm:"column:b;type:datetime;not null;default:CURRENT_TIMESTAMP" json:"b"`
+}
+
+func (testDateTime) TableName() string {
+	return "test_datetime"
+}
+
 func main() {
 	db := ConnectDB()
 	// db.Session(&gorm.Session{}) // 返回db, 只是叫session而已, 其实就是db, session是db的拷贝, 为什么要这样? 因为这样的话我们可以重新设置db的gorm.Config, 且不影响原始的db对象
 	// db.Table("your_table_name") // 返回db, 顺便将 db.Statement.Table 设置为你想操作的表名
 	// db.Model(tangHongTao{})     // 返回db, 顺便将 db.Statement.Table 设置为你想操作的表名, Model()会从结构体中提取表名
 	// db.Begin(&sql.TxOptions{})  // 返回db, 只是叫tx而已, 顺便将 db.Statement.ConnPool 设置为事务的连接, 然后使用这个tx进行增删改查, 完事之后记得commit
-	// AutoMigrate(db)
+	AutoMigrate(db)
 
-	db.Create(&def{E: 0})
-	// Insert(db)
-	// Transaction(db)
-	// Query(db)
-	// Update(db)
+	Insert(db)
+	Transaction(db)
+	Query(db)
+	Update(db)
 }
 
 func must(err error) {
@@ -88,6 +98,7 @@ func AutoMigrate(db *gorm.DB) {
 	// 删除表
 	db.Migrator().DropTable(&tangHongTao{})
 	db.Migrator().DropTable(&abc{})
+	db.Migrator().DropTable(&testDateTime{})
 
 	// 自动创建或修改表
 	// 如果数据库中无此表, 则创建
@@ -98,7 +109,7 @@ func AutoMigrate(db *gorm.DB) {
 	//    Go中字段类型发生变化, 数据库中的类型也要跟着变化
 	//    比如说将 varchar 修改为 int  那么对于已经存在的记录aaaaa, 就会报错
 	//    *** 主键字段不能修改类型 ***
-	err := db.AutoMigrate(tangHongTao{}, abc{})
+	err := db.AutoMigrate(tangHongTao{}, abc{}, testDateTime{})
 	must(err)
 }
 
